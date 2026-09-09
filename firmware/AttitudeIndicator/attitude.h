@@ -1,0 +1,29 @@
+#pragma once
+#include <cstdint>
+namespace instrument {
+struct Vec3 { float x, y, z; };
+class AttitudeFilter {
+public:
+  void reset(Vec3 acceleration);
+  bool update(Vec3 acceleration, Vec3 gyroRadPerSec, float dtSeconds);
+  void zeroReference();
+  float pitch() const;
+  float roll() const;
+private:
+  float q_[4] = {1,0,0,0};
+  float ref_[4] = {1,0,0,0};
+  void relative(float out[4]) const;
+};
+class StationaryCalibration {
+public:
+  void reset();
+  bool add(Vec3 acceleration, Vec3 gyroRadPerSec);
+  unsigned count() const { return count_; }
+  Vec3 bias() const { return gyroMean_; }
+  Vec3 acceleration() const { return accelMean_; }
+  static constexpr unsigned RequiredSamples = 400;
+private:
+  unsigned count_ = 0;
+  Vec3 gyroMean_{0,0,0}, accelMean_{0,0,0}, first_{0,0,0};
+};
+}
