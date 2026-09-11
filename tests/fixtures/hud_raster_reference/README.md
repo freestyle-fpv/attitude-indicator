@@ -1,0 +1,5 @@
+Frozen HUD rasterizer before the 2026-09-10 performance work, after the shared FPS overlay and vertical swipes. Compile against current shared geometry/font headers. The host comparison uses 500 deterministic poses, including subpixel/near-zero roll, pitch/roll extremes, wrapping heading and mechanical numeric transitions. FPS remains a separate, unchanged consumer overlay. Do not update this fixture merely to make a pixel mismatch pass.
+
+The subsequent whole-number tape readout request intentionally changes two 67×32 windows. The ongoing regression excludes only those windows; before that requested design change, all 108,578,000 pixels matched. Dedicated HUD tests cover immediate, whole-number movement and stability.
+
+A further user request adds label opacity near readout/scale edges. Those scale-label areas are now excluded too; HUD tests explicitly verify intermediate opacity and full visibility away from boundaries. The original geometry, center symbol, pitch and bank are still compared pixel-for-pixel.

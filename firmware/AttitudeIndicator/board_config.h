@@ -2,8 +2,11 @@
 #include "attitude.h"
 namespace board {
 enum class SampleResult { NotReady, Valid, Invalid };
-constexpr int Sda=15, Scl=14, LcdCs=12, LcdClock=38, LcdReset=39;
+constexpr int Sda=15, Scl=14, LcdCs=12, LcdClock=38, LcdReset=39, LcdTe=13;
 constexpr int LcdD0=4, LcdD1=5, LcdD2=6, LcdD3=7, Boot=0;
+constexpr int TouchReset=40,TouchInterrupt=11;
+constexpr uint8_t TouchAddress=0x5A,ExpanderAddress=0x20;
+constexpr uint8_t PowerButtonMask=1u<<4; // PWR/SYS_OUT on TCA9554 P4, active high.
 constexpr unsigned Width=466, Height=466;
 constexpr unsigned LcdColumnOffset=6, LcdRowOffset=0;
 constexpr uint8_t ImuAddress=0x6B, Brightness=180;

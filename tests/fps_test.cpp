@@ -45,10 +45,55 @@ int main(){
     overlay.blitBand(invalid.data()+1,466,FpsOverlay::Y,FpsOverlay::Height,column);
     overlay.blitDemoBand(invalid.data()+1,466,414,14,column);
   }
-  overlay.blitBand(invalid.data()+1,FpsOverlay::Width,FpsOverlay::Y,FpsOverlay::Height,FpsOverlay::X+1);
-  overlay.blitBand(invalid.data()+1,FpsOverlay::Width-1,FpsOverlay::Y,FpsOverlay::Height,FpsOverlay::X);
-  overlay.blitDemoBand(invalid.data()+1,48,414,14,210);
-  overlay.blitDemoBand(invalid.data()+1,47,414,14,209);
+  overlay.blitBand(invalid.data()+1,0,FpsOverlay::Y,FpsOverlay::Height,FpsOverlay::X);
+  overlay.blitBand(invalid.data()+1,-1,FpsOverlay::Y,FpsOverlay::Height,FpsOverlay::X);
+  overlay.blitDemoBand(invalid.data()+1,0,414,14,209);
   for(auto pixel:invalid)if(pixel!=0x1234)return 11;
+  std::vector<uint16_t> sim(466*466,0x1234),simWire(466*466,0x3412);
+  FpsOverlay wire(true);
+  overlay.blitSimBand(sim.data(),466,0,466);
+  for(int y=0;y<466;y+=37)wire.blitSimBand(simWire.data()+y*466,466,y,std::min(37,466-y));
+  unsigned changed=0;
+  for(int y=0;y<466;++y)for(int x=0;x<466;++x){
+    const auto value=sim[y*466+x];
+    if(value!=0x1234){
+      ++changed;if(x<215||x>=251||y<414||y>=428)return 13;
+    }
+    if(simWire[y*466+x]!=static_cast<uint16_t>((value<<8)|(value>>8)))return 14;
+  }
+  if(changed<100)return 15;
+  // A needle patch can intersect only part of a badge. Horizontal clipping
+  // must reconstruct the same label as a full-frame overlay, with no remnants.
+  overlay.blitBand(sim.data(),466,0,466);
+  for(int y=400;y<466;y+=11)for(int x=170;x<290;x+=17){
+    const int width=std::min(17,290-x),height=std::min(11,466-y);
+    std::vector<uint16_t> patch(width*height+2,0x1234);
+    overlay.blitBand(patch.data()+1,width,y,height,x);
+    overlay.blitSimBand(patch.data()+1,width,y,height,x);
+    if(patch.front()!=0x1234||patch.back()!=0x1234)return 16;
+    for(int row=0;row<height;++row)for(int col=0;col<width;++col)
+      if(patch[1+row*width+col]!=sim[(y+row)*466+x+col]){
+        std::puts("FAIL partially covered FPS/SIM label was not restored");return 17;
+      }
+  }
+  // The opaque SIM backing hides every prior tick/needle pixel, including
+  // partially covered label edges, in both native and panel byte order.
+  overlay.blitSimBand(sim.data(),466,0,466,0,true);
+  std::fill(simWire.begin(),simWire.end(),0x3412);
+  wire.update(1000);wire.blitBand(simWire.data(),466,0,466);
+  wire.blitSimBand(simWire.data(),466,0,466,0,true);
+  for(int y=400;y<432;y+=7)for(int x=200;x<264;x+=9){
+    const int width=std::min(9,264-x),height=std::min(7,432-y);
+    std::vector<uint16_t> patch(width*height+2,0x1234);
+    overlay.blitSimBand(patch.data()+1,width,y,height,x,true);
+    if(patch.front()!=0x1234||patch.back()!=0x1234)return 18;
+    for(int row=0;row<height;++row)for(int col=0;col<width;++col){
+      const auto value=sim[(y+row)*466+x+col];
+      if(patch[1+row*width+col]!=value)return 19;
+      if(simWire[(y+row)*466+x+col]!=static_cast<uint16_t>((value<<8)|(value>>8)))return 20;
+    }
+  }
+  for(int y=411;y<431;++y)for(int x=211;x<255;++x)
+    if(sim[y*466+x]!=0x0841&&sim[y*466+x]!=0xffe0)return 21;
   std::puts("PASS actual completed-frame FPS, stalls, timer wrap, badge text, circular and compact bounds");
 }

@@ -1,0 +1,534 @@
+{
+  "recorded_at": "2026-09-10T17:24:55.284699+08:00",
+  "port": "/dev/cu.usbmodem21101",
+  "firmware_sha256": "ff1b70b3b36d8e5aac1498e55966da5c9a2c9d0d44ac31eba12f2e62464ceda9",
+  "events": [
+    [
+      0,
+      "hud_imu",
+      "u"
+    ],
+    [
+      12,
+      "hud_demo",
+      "d"
+    ],
+    [
+      55,
+      "attitude",
+      "h"
+    ],
+    [
+      62,
+      "altimeter",
+      "t"
+    ],
+    [
+      69,
+      "airspeed",
+      "a"
+    ],
+    [
+      76,
+      "hud_imu_return",
+      "ud"
+    ]
+  ],
+  "records": [
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "CPU MHz: 240; band rows: 60; DMA chunk pixels: 16384"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "AXP2101: present"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "AIRSPEED SIM. BOOT short: switch; hold 1.5s / d: demo. a: airspeed; h: attitude; c: calibrate; v135 + newline: simulated km/h; t: altimeter; u: HUD (IMU attitude, simulated IAS/ALT/HDG); b275 + newline: simulated meters (0-3000)."
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "fps=-1.0 pitch=0.0 roll=0.0 valid=0 cal=0 demo=1 raw_g=0.000,0.000,0.000 render_ms=0.0 tx_ms=0.0 frame_ms=0.0 max_gap_ms=0.0 sample_hz=0.0 heap=14792 drops=0 setup_ms=0.0 stack=4944,0,0 stages=0,0,0,0 mode=airspeed speed=135.0 altitude_m=275.0 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "fps=-1.0 pitch=0.0 roll=0.0 valid=0 cal=137 demo=1 raw_g=-0.003,0.090,-0.975 render_ms=16.1 tx_ms=7.0 frame_ms=17.0 max_gap_ms=0.0 sample_hz=186.8 heap=14524 drops=0 setup_ms=0.3 stack=3996,6296,6124 stages=5153,10915,0,0 mode=airspeed speed=119.6 altitude_m=380.5 te_us=16501 te_miss=0 te_pulses=61 patch=50304"
+    },
+    {
+      "elapsed": 0.252,
+      "stage": "hud_imu",
+      "line": "fps=60.7 pitch=-0.0 roll=0.0 valid=1 cal=400 demo=0 raw_g=-0.003,0.091,-0.975 render_ms=88.7 tx_ms=19.5 frame_ms=60.6 max_gap_ms=84.0 sample_hz=191.6 heap=14072 drops=8 setup_ms=1.3 stack=3996,5772,4940 stages=0,88713,0,0 mode=hud speed=199.5 altitude_m=399.1 te_us=16510 te_miss=0 te_pulses=610 patch=130584"
+    },
+    {
+      "elapsed": 1.254,
+      "stage": "hud_imu",
+      "line": "fps=48.0 pitch=-0.0 roll=0.0 valid=1 cal=400 demo=0 raw_g=-0.003,0.090,-0.976 render_ms=88.2 tx_ms=18.8 frame_ms=65.0 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.0 stack=3996,5772,4892 stages=0,88187,0,0 mode=hud speed=180.1 altitude_m=385.2 te_us=16470 te_miss=0 te_pulses=671 patch=130584"
+    },
+    {
+      "elapsed": 2.293,
+      "stage": "hud_imu",
+      "line": "fps=16.9 pitch=-0.0 roll=0.0 valid=1 cal=400 demo=0 raw_g=-0.002,0.091,-0.975 render_ms=83.1 tx_ms=19.0 frame_ms=51.0 max_gap_ms=84.0 sample_hz=199.4 heap=14072 drops=8 setup_ms=1.3 stack=3996,5772,4892 stages=0,83143,0,0 mode=hud speed=135.3 altitude_m=368.1 te_us=16472 te_miss=0 te_pulses=733 patch=130584"
+    },
+    {
+      "elapsed": 3.311,
+      "stage": "hud_imu",
+      "line": "fps=16.6 pitch=-0.0 roll=0.1 valid=1 cal=400 demo=0 raw_g=-0.001,0.090,-0.975 render_ms=89.0 tx_ms=17.7 frame_ms=63.9 max_gap_ms=84.0 sample_hz=201.2 heap=14072 drops=8 setup_ms=1.1 stack=3996,5772,4892 stages=0,88972,0,0 mode=hud speed=79.9 altitude_m=349.0 te_us=16464 te_miss=0 te_pulses=796 patch=130584"
+    },
+    {
+      "elapsed": 4.368,
+      "stage": "hud_imu",
+      "line": "fps=16.4 pitch=-0.0 roll=0.0 valid=1 cal=400 demo=0 raw_g=-0.003,0.090,-0.976 render_ms=86.1 tx_ms=17.5 frame_ms=64.6 max_gap_ms=84.0 sample_hz=199.8 heap=14072 drops=8 setup_ms=1.1 stack=3996,5772,4892 stages=0,86067,0,0 mode=hud speed=29.7 altitude_m=327.6 te_us=16506 te_miss=0 te_pulses=860 patch=130584"
+    },
+    {
+      "elapsed": 5.372,
+      "stage": "hud_imu",
+      "line": "fps=17.3 pitch=-0.0 roll=-0.0 valid=1 cal=400 demo=0 raw_g=-0.004,0.091,-0.975 render_ms=80.4 tx_ms=17.2 frame_ms=63.3 max_gap_ms=84.0 sample_hz=201.0 heap=14072 drops=8 setup_ms=0.8 stack=3996,5772,4892 stages=0,80432,0,0 mode=hud speed=2.8 altitude_m=305.8 te_us=16467 te_miss=0 te_pulses=922 patch=130584"
+    },
+    {
+      "elapsed": 6.41,
+      "stage": "hud_imu",
+      "line": "fps=17.6 pitch=19.0 roll=68.3 valid=1 cal=400 demo=0 raw_g=0.873,0.380,-0.275 render_ms=86.1 tx_ms=17.6 frame_ms=64.2 max_gap_ms=84.0 sample_hz=199.4 heap=14072 drops=8 setup_ms=1.1 stack=3996,5772,4892 stages=0,86115,0,0 mode=hud speed=5.6 altitude_m=282.7 te_us=16504 te_miss=0 te_pulses=984 patch=130584"
+    },
+    {
+      "elapsed": 7.42,
+      "stage": "hud_imu",
+      "line": "fps=17.4 pitch=14.8 roll=55.6 valid=1 cal=400 demo=0 raw_g=0.804,0.355,-0.565 render_ms=93.4 tx_ms=17.4 frame_ms=80.9 max_gap_ms=84.0 sample_hz=198.0 heap=14072 drops=8 setup_ms=1.1 stack=3996,5772,4892 stages=0,93437,0,0 mode=hud speed=36.9 altitude_m=260.1 te_us=16481 te_miss=0 te_pulses=1045 patch=130584"
+    },
+    {
+      "elapsed": 8.443,
+      "stage": "hud_imu",
+      "line": "fps=16.1 pitch=5.4 roll=53.2 valid=1 cal=400 demo=0 raw_g=0.804,0.185,-0.599 render_ms=92.9 tx_ms=18.5 frame_ms=65.6 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=0.9 stack=3996,5772,4892 stages=0,92938,0,0 mode=hud speed=88.2 altitude_m=237.4 te_us=16479 te_miss=0 te_pulses=1106 patch=130584"
+    },
+    {
+      "elapsed": 9.484,
+      "stage": "hud_imu",
+      "line": "fps=15.7 pitch=27.3 roll=51.9 valid=1 cal=400 demo=0 raw_g=0.741,0.536,-0.534 render_ms=95.4 tx_ms=17.3 frame_ms=80.3 max_gap_ms=84.0 sample_hz=199.8 heap=14072 drops=8 setup_ms=0.9 stack=3996,5688,4844 stages=0,95385,0,0 mode=hud speed=143.7 altitude_m=215.3 te_us=16487 te_miss=0 te_pulses=1170 patch=130584"
+    },
+    {
+      "elapsed": 10.538,
+      "stage": "hud_imu",
+      "line": "fps=15.2 pitch=10.2 roll=58.0 valid=1 cal=400 demo=0 raw_g=0.850,0.266,-0.517 render_ms=96.2 tx_ms=17.7 frame_ms=81.0 max_gap_ms=84.0 sample_hz=200.2 heap=14072 drops=8 setup_ms=1.0 stack=3996,5688,4844 stages=0,96179,0,0 mode=hud speed=185.8 altitude_m=194.4 te_us=16487 te_miss=0 te_pulses=1234 patch=130584"
+    },
+    {
+      "elapsed": 11.577,
+      "stage": "hud_imu",
+      "line": "fps=15.4 pitch=17.6 roll=19.4 valid=1 cal=400 demo=0 raw_g=0.453,0.519,-1.033 render_ms=92.4 tx_ms=19.1 frame_ms=66.0 max_gap_ms=84.0 sample_hz=201.2 heap=14072 drops=8 setup_ms=1.0 stack=3996,5688,4844 stages=0,92357,0,0 mode=hud speed=199.9 altitude_m=175.7 te_us=16501 te_miss=0 te_pulses=1297 patch=130584"
+    },
+    {
+      "elapsed": 12.614,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=5.8 roll=3.2 valid=1 cal=400 demo=1 raw_g=0.448,0.233,-0.843 render_ms=77.8 tx_ms=19.1 frame_ms=51.2 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.1 stack=3996,5688,4844 stages=0,77804,0,0 mode=hud speed=87.8 altitude_m=278.5 te_us=16476 te_miss=0 te_pulses=1360 patch=130584"
+    },
+    {
+      "elapsed": 13.654,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=8.2 roll=12.9 valid=1 cal=400 demo=1 raw_g=0.299,0.247,-0.919 render_ms=88.7 tx_ms=18.7 frame_ms=65.2 max_gap_ms=84.0 sample_hz=199.0 heap=14072 drops=8 setup_ms=1.1 stack=3996,5688,4844 stages=0,88708,0,0 mode=hud speed=93.3 altitude_m=289.7 te_us=16484 te_miss=0 te_pulses=1423 patch=130584"
+    },
+    {
+      "elapsed": 14.691,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=10.3 roll=20.4 valid=1 cal=400 demo=1 raw_g=0.733,0.247,-0.452 render_ms=92.7 tx_ms=19.0 frame_ms=65.5 max_gap_ms=84.0 sample_hz=198.6 heap=14072 drops=8 setup_ms=0.9 stack=3996,5688,4844 stages=0,92668,0,0 mode=hud speed=97.9 altitude_m=300.3 te_us=16476 te_miss=0 te_pulses=1485 patch=130584"
+    },
+    {
+      "elapsed": 15.75,
+      "stage": "hud_demo",
+      "line": "fps=15.4 pitch=11.9 roll=24.5 valid=1 cal=400 demo=1 raw_g=0.530,0.351,-0.810 render_ms=82.2 tx_ms=19.9 frame_ms=52.0 max_gap_ms=84.0 sample_hz=200.2 heap=14072 drops=8 setup_ms=1.4 stack=3996,5688,4844 stages=0,82151,0,0 mode=hud speed=100.9 altitude_m=310.0 te_us=16509 te_miss=0 te_pulses=1549 patch=130584"
+    },
+    {
+      "elapsed": 16.81,
+      "stage": "hud_demo",
+      "line": "fps=14.9 pitch=12.8 roll=24.3 valid=1 cal=400 demo=1 raw_g=0.594,0.340,-0.758 render_ms=82.0 tx_ms=18.9 frame_ms=51.2 max_gap_ms=84.0 sample_hz=199.1 heap=14072 drops=8 setup_ms=1.4 stack=3996,5688,4844 stages=0,82015,0,0 mode=hud speed=102.0 altitude_m=318.1 te_us=16500 te_miss=0 te_pulses=1613 patch=130584"
+    },
+    {
+      "elapsed": 17.862,
+      "stage": "hud_demo",
+      "line": "fps=15.1 pitch=13.0 roll=19.9 valid=1 cal=400 demo=1 raw_g=0.580,0.342,-0.760 render_ms=92.3 tx_ms=17.5 frame_ms=80.9 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.3 stack=3996,5688,4844 stages=0,92312,0,0 mode=hud speed=100.9 altitude_m=324.3 te_us=16499 te_miss=0 te_pulses=1678 patch=130584"
+    },
+    {
+      "elapsed": 18.895,
+      "stage": "hud_demo",
+      "line": "fps=15.2 pitch=12.3 roll=12.1 valid=1 cal=400 demo=1 raw_g=0.575,0.353,-0.766 render_ms=81.6 tx_ms=19.7 frame_ms=51.8 max_gap_ms=84.0 sample_hz=201.6 heap=14072 drops=8 setup_ms=1.2 stack=3996,5688,4844 stages=0,81600,0,0 mode=hud speed=97.8 altitude_m=328.3 te_us=16472 te_miss=0 te_pulses=1740 patch=130584"
+    },
+    {
+      "elapsed": 19.952,
+      "stage": "hud_demo",
+      "line": "fps=15.6 pitch=11.0 roll=2.0 valid=1 cal=400 demo=1 raw_g=0.549,0.352,-0.773 render_ms=87.0 tx_ms=18.2 frame_ms=64.8 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=0.9 stack=3996,5688,4844 stages=0,86959,0,0 mode=hud speed=93.2 altitude_m=330.0 te_us=16533 te_miss=0 te_pulses=1805 patch=130584"
+    },
+    {
+      "elapsed": 20.987,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=9.1 roll=-8.2 valid=1 cal=400 demo=1 raw_g=0.309,0.453,-0.858 render_ms=81.7 tx_ms=18.9 frame_ms=50.8 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=0.9 stack=3996,5688,4844 stages=0,81733,0,0 mode=hud speed=87.6 altitude_m=329.2 te_us=16481 te_miss=0 te_pulses=1867 patch=130584"
+    },
+    {
+      "elapsed": 22.04,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=6.7 roll=-17.1 valid=1 cal=400 demo=1 raw_g=-0.002,0.096,-0.977 render_ms=79.9 tx_ms=19.2 frame_ms=51.4 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=0.9 stack=3996,5656,4844 stages=0,79851,0,0 mode=hud speed=81.8 altitude_m=326.1 te_us=16502 te_miss=0 te_pulses=1931 patch=130584"
+    },
+    {
+      "elapsed": 23.053,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=4.3 roll=-22.9 valid=1 cal=400 demo=1 raw_g=-0.002,0.096,-0.975 render_ms=88.9 tx_ms=17.6 frame_ms=65.2 max_gap_ms=84.0 sample_hz=200.2 heap=14072 drops=8 setup_ms=0.9 stack=3996,5656,4844 stages=0,88915,0,0 mode=hud speed=76.7 altitude_m=321.0 te_us=16472 te_miss=0 te_pulses=1993 patch=130584"
+    },
+    {
+      "elapsed": 24.061,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=2.0 roll=-25.0 valid=1 cal=400 demo=1 raw_g=0.078,0.106,-0.975 render_ms=91.1 tx_ms=19.7 frame_ms=65.7 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.6 stack=3996,5656,4844 stages=0,91058,0,0 mode=hud speed=72.7 altitude_m=314.0 te_us=16481 te_miss=0 te_pulses=2054 patch=130584"
+    },
+    {
+      "elapsed": 25.122,
+      "stage": "hud_demo",
+      "line": "fps=15.7 pitch=-0.2 roll=-22.9 valid=1 cal=400 demo=1 raw_g=0.140,0.110,-0.970 render_ms=92.9 tx_ms=19.4 frame_ms=65.4 max_gap_ms=84.0 sample_hz=198.7 heap=14072 drops=8 setup_ms=1.5 stack=3996,5656,4844 stages=0,92856,0,0 mode=hud speed=70.4 altitude_m=305.0 te_us=16493 te_miss=0 te_pulses=2118 patch=130584"
+    },
+    {
+      "elapsed": 26.185,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=-1.8 roll=-16.7 valid=1 cal=400 demo=1 raw_g=0.162,0.111,-0.965 render_ms=86.0 tx_ms=17.5 frame_ms=65.6 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,85975,0,0 mode=hud speed=70.2 altitude_m=294.6 te_us=16477 te_miss=0 te_pulses=2183 patch=130584"
+    },
+    {
+      "elapsed": 27.231,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=-2.8 roll=-7.6 valid=1 cal=400 demo=1 raw_g=-0.001,0.095,-0.975 render_ms=83.8 tx_ms=17.5 frame_ms=65.0 max_gap_ms=84.0 sample_hz=201.0 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,83842,0,0 mode=hud speed=72.1 altitude_m=283.5 te_us=16478 te_miss=0 te_pulses=2247 patch=130584"
+    },
+    {
+      "elapsed": 28.261,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=-3.0 roll=2.6 valid=1 cal=400 demo=1 raw_g=0.472,0.166,-0.950 render_ms=90.0 tx_ms=18.5 frame_ms=65.0 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=0.9 stack=3996,5656,4844 stages=0,89998,0,0 mode=hud speed=75.7 altitude_m=272.2 te_us=16483 te_miss=0 te_pulses=2309 patch=130584"
+    },
+    {
+      "elapsed": 29.293,
+      "stage": "hud_demo",
+      "line": "fps=16.6 pitch=-2.4 roll=12.3 valid=1 cal=400 demo=1 raw_g=0.891,0.165,-0.494 render_ms=85.6 tx_ms=17.2 frame_ms=65.5 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,85585,0,0 mode=hud speed=80.7 altitude_m=261.0 te_us=16477 te_miss=0 te_pulses=2372 patch=130584"
+    },
+    {
+      "elapsed": 30.354,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=-1.1 roll=20.2 valid=1 cal=400 demo=1 raw_g=0.875,0.156,-0.493 render_ms=92.6 tx_ms=18.9 frame_ms=65.1 max_gap_ms=84.0 sample_hz=198.9 heap=14072 drops=8 setup_ms=1.2 stack=3996,5656,4844 stages=0,92637,0,0 mode=hud speed=86.6 altitude_m=250.1 te_us=16473 te_miss=0 te_pulses=2435 patch=130584"
+    },
+    {
+      "elapsed": 31.41,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=0.8 roll=24.5 valid=1 cal=400 demo=1 raw_g=0.818,0.275,-0.698 render_ms=87.7 tx_ms=17.9 frame_ms=64.6 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.3 stack=3996,5656,4844 stages=0,87708,0,0 mode=hud speed=92.3 altitude_m=240.4 te_us=16465 te_miss=0 te_pulses=2500 patch=130584"
+    },
+    {
+      "elapsed": 32.432,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=3.1 roll=24.5 valid=1 cal=400 demo=1 raw_g=0.736,0.232,-0.661 render_ms=87.9 tx_ms=18.0 frame_ms=64.8 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,87938,0,0 mode=hud speed=97.1 altitude_m=232.4 te_us=16463 te_miss=0 te_pulses=2562 patch=130584"
+    },
+    {
+      "elapsed": 33.446,
+      "stage": "hud_demo",
+      "line": "fps=15.7 pitch=5.5 roll=20.6 valid=1 cal=400 demo=1 raw_g=0.734,0.236,-0.661 render_ms=92.6 tx_ms=19.4 frame_ms=65.5 max_gap_ms=84.0 sample_hz=199.2 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,92621,0,0 mode=hud speed=100.4 altitude_m=226.3 te_us=16455 te_miss=0 te_pulses=2623 patch=130584"
+    },
+    {
+      "elapsed": 34.46,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=7.8 roll=13.3 valid=1 cal=400 demo=1 raw_g=0.742,0.241,-0.674 render_ms=89.0 tx_ms=19.0 frame_ms=65.8 max_gap_ms=84.0 sample_hz=199.2 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,89005,0,0 mode=hud speed=101.9 altitude_m=222.2 te_us=16509 te_miss=0 te_pulses=2684 patch=130584"
+    },
+    {
+      "elapsed": 35.514,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=10.0 roll=3.4 valid=1 cal=400 demo=1 raw_g=0.733,0.244,-0.665 render_ms=88.0 tx_ms=19.1 frame_ms=66.5 max_gap_ms=84.0 sample_hz=202.3 heap=14072 drops=8 setup_ms=1.3 stack=3996,5656,4844 stages=0,88010,0,0 mode=hud speed=101.4 altitude_m=220.1 te_us=16490 te_miss=0 te_pulses=2749 patch=130584"
+    },
+    {
+      "elapsed": 36.54,
+      "stage": "hud_demo",
+      "line": "fps=16.6 pitch=11.7 roll=-6.7 valid=1 cal=400 demo=1 raw_g=0.729,0.251,-0.666 render_ms=90.4 tx_ms=18.3 frame_ms=64.5 max_gap_ms=84.0 sample_hz=198.6 heap=14072 drops=8 setup_ms=1.4 stack=3996,5656,4844 stages=0,90405,0,0 mode=hud speed=98.9 altitude_m=220.5 te_us=16499 te_miss=0 te_pulses=2811 patch=130584"
+    },
+    {
+      "elapsed": 37.598,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=12.7 roll=-16.0 valid=1 cal=400 demo=1 raw_g=0.722,0.250,-0.683 render_ms=92.4 tx_ms=19.2 frame_ms=65.2 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,92428,0,0 mode=hud speed=94.6 altitude_m=223.3 te_us=16470 te_miss=0 te_pulses=2875 patch=130584"
+    },
+    {
+      "elapsed": 38.617,
+      "stage": "hud_demo",
+      "line": "fps=15.7 pitch=13.0 roll=-22.3 valid=1 cal=400 demo=1 raw_g=0.718,0.254,-0.681 render_ms=83.8 tx_ms=17.4 frame_ms=65.9 max_gap_ms=84.0 sample_hz=199.2 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,83801,0,0 mode=hud speed=89.4 altitude_m=228.1 te_us=16471 te_miss=0 te_pulses=2937 patch=130584"
+    },
+    {
+      "elapsed": 39.654,
+      "stage": "hud_demo",
+      "line": "fps=15.6 pitch=12.5 roll=-25.0 valid=1 cal=400 demo=1 raw_g=0.724,0.256,-0.677 render_ms=81.3 tx_ms=19.4 frame_ms=51.2 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.5 stack=3996,5656,4844 stages=0,81298,0,0 mode=hud speed=83.6 altitude_m=235.1 te_us=16505 te_miss=0 te_pulses=2999 patch=130584"
+    },
+    {
+      "elapsed": 40.693,
+      "stage": "hud_demo",
+      "line": "fps=15.4 pitch=11.3 roll=-23.4 valid=1 cal=400 demo=1 raw_g=0.716,0.261,-0.676 render_ms=94.4 tx_ms=20.0 frame_ms=66.5 max_gap_ms=84.0 sample_hz=199.4 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,94377,0,0 mode=hud speed=78.2 altitude_m=243.7 te_us=16492 te_miss=0 te_pulses=3062 patch=130584"
+    },
+    {
+      "elapsed": 41.73,
+      "stage": "hud_demo",
+      "line": "fps=15.4 pitch=9.5 roll=-17.8 valid=1 cal=400 demo=1 raw_g=0.667,0.271,-0.703 render_ms=93.4 tx_ms=18.9 frame_ms=65.8 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.2 stack=3996,5656,4844 stages=0,93445,0,0 mode=hud speed=73.7 altitude_m=253.7 te_us=16498 te_miss=0 te_pulses=3125 patch=130584"
+    },
+    {
+      "elapsed": 42.775,
+      "stage": "hud_demo",
+      "line": "fps=16.1 pitch=7.2 roll=-9.1 valid=1 cal=400 demo=1 raw_g=0.707,0.274,-0.672 render_ms=89.6 tx_ms=20.0 frame_ms=67.2 max_gap_ms=84.0 sample_hz=201.0 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,89604,0,0 mode=hud speed=70.9 altitude_m=264.8 te_us=16487 te_miss=0 te_pulses=3189 patch=130584"
+    },
+    {
+      "elapsed": 43.782,
+      "stage": "hud_demo",
+      "line": "fps=16.7 pitch=4.8 roll=0.7 valid=1 cal=400 demo=1 raw_g=0.696,0.283,-0.670 render_ms=84.3 tx_ms=17.5 frame_ms=64.2 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.3 stack=3996,5656,4844 stages=0,84318,0,0 mode=hud speed=70.0 altitude_m=275.8 te_us=16472 te_miss=0 te_pulses=3251 patch=130584"
+    },
+    {
+      "elapsed": 44.797,
+      "stage": "hud_demo",
+      "line": "fps=16.9 pitch=2.4 roll=10.5 valid=1 cal=400 demo=1 raw_g=0.691,0.289,-0.685 render_ms=76.2 tx_ms=18.8 frame_ms=51.0 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,76228,0,0 mode=hud speed=71.1 altitude_m=286.9 te_us=16474 te_miss=0 te_pulses=3312 patch=130584"
+    },
+    {
+      "elapsed": 45.844,
+      "stage": "hud_demo",
+      "line": "fps=16.4 pitch=0.2 roll=18.8 valid=1 cal=400 demo=1 raw_g=0.696,0.297,-0.678 render_ms=89.8 tx_ms=19.0 frame_ms=65.5 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.2 stack=3996,5656,4844 stages=0,89783,0,0 mode=hud speed=74.2 altitude_m=297.7 te_us=16491 te_miss=0 te_pulses=3375 patch=130584"
+    },
+    {
+      "elapsed": 46.857,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=-1.5 roll=23.8 valid=1 cal=400 demo=1 raw_g=0.699,0.300,-0.674 render_ms=80.7 tx_ms=18.3 frame_ms=50.1 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,80724,0,0 mode=hud speed=78.7 altitude_m=307.4 te_us=16485 te_miss=0 te_pulses=3436 patch=130584"
+    },
+    {
+      "elapsed": 47.857,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=-2.6 roll=24.9 valid=1 cal=400 demo=1 raw_g=0.729,0.307,-0.652 render_ms=91.9 tx_ms=18.9 frame_ms=65.3 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.1 stack=3996,5656,4844 stages=0,91919,0,0 mode=hud speed=84.1 altitude_m=315.5 te_us=16492 te_miss=0 te_pulses=3497 patch=130584"
+    },
+    {
+      "elapsed": 48.862,
+      "stage": "hud_demo",
+      "line": "fps=15.9 pitch=-3.0 roll=22.1 valid=1 cal=400 demo=1 raw_g=0.769,0.350,-0.638 render_ms=90.7 tx_ms=18.9 frame_ms=65.8 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,90687,0,0 mode=hud speed=89.7 altitude_m=322.1 te_us=16475 te_miss=0 te_pulses=3558 patch=130584"
+    },
+    {
+      "elapsed": 49.875,
+      "stage": "hud_demo",
+      "line": "fps=15.7 pitch=-2.7 roll=15.6 valid=1 cal=400 demo=1 raw_g=0.113,0.265,-0.865 render_ms=87.8 tx_ms=17.7 frame_ms=65.1 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=1.3 stack=3996,5656,4844 stages=0,87773,0,0 mode=hud speed=94.9 altitude_m=326.9 te_us=16505 te_miss=0 te_pulses=3620 patch=130584"
+    },
+    {
+      "elapsed": 50.922,
+      "stage": "hud_demo",
+      "line": "fps=16.3 pitch=-1.6 roll=6.4 valid=1 cal=400 demo=1 raw_g=-0.002,0.101,-0.975 render_ms=91.2 tx_ms=19.1 frame_ms=66.0 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=0.9 stack=3996,5656,4844 stages=0,91174,0,0 mode=hud speed=99.0 altitude_m=329.5 te_us=16504 te_miss=0 te_pulses=3683 patch=130584"
+    },
+    {
+      "elapsed": 51.939,
+      "stage": "hud_demo",
+      "line": "fps=16.6 pitch=0.0 roll=-3.7 valid=1 cal=400 demo=1 raw_g=-0.001,0.083,-1.065 render_ms=73.4 tx_ms=18.8 frame_ms=50.8 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.5 stack=3996,5656,4844 stages=0,73403,0,0 mode=hud speed=101.5 altitude_m=329.8 te_us=16491 te_miss=0 te_pulses=3745 patch=130584"
+    },
+    {
+      "elapsed": 52.997,
+      "stage": "hud_demo",
+      "line": "fps=16.3 pitch=2.2 roll=-13.5 valid=1 cal=400 demo=1 raw_g=0.786,0.179,-0.662 render_ms=89.9 tx_ms=19.5 frame_ms=66.8 max_gap_ms=84.0 sample_hz=198.5 heap=14072 drops=8 setup_ms=1.5 stack=3996,5656,4844 stages=0,89893,0,0 mode=hud speed=101.9 altitude_m=327.8 te_us=16497 te_miss=0 te_pulses=3808 patch=130584"
+    },
+    {
+      "elapsed": 54.006,
+      "stage": "hud_demo",
+      "line": "fps=15.7 pitch=4.6 roll=-20.7 valid=1 cal=400 demo=1 raw_g=0.782,0.115,-0.624 render_ms=83.6 tx_ms=17.4 frame_ms=65.9 max_gap_ms=84.0 sample_hz=199.2 heap=14072 drops=8 setup_ms=0.9 stack=3996,5656,4844 stages=0,83603,0,0 mode=hud speed=100.3 altitude_m=323.6 te_us=16482 te_miss=0 te_pulses=3870 patch=130584"
+    },
+    {
+      "elapsed": 55.063,
+      "stage": "attitude",
+      "line": "fps=15.4 pitch=7.1 roll=-24.6 valid=1 cal=400 demo=1 raw_g=0.760,0.119,-0.671 render_ms=94.6 tx_ms=18.1 frame_ms=65.0 max_gap_ms=84.0 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.0 stack=3996,5656,4844 stages=0,94557,0,0 mode=hud speed=96.8 altitude_m=317.1 te_us=16530 te_miss=0 te_pulses=3933 patch=130584"
+    },
+    {
+      "elapsed": 56.065,
+      "stage": "attitude",
+      "line": "fps=31.8 pitch=2.2 roll=48.3 valid=1 cal=400 demo=0 raw_g=0.747,0.119,-0.666 render_ms=37.0 tx_ms=23.0 frame_ms=29.7 max_gap_ms=84.0 sample_hz=207.6 heap=14072 drops=8 setup_ms=2.1 stack=3996,5656,4844 stages=19812,11339,2598,2540 mode=attitude speed=181.4 altitude_m=140.2 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 57.068,
+      "stage": "attitude",
+      "line": "fps=34.8 pitch=5.7 roll=35.2 valid=1 cal=400 demo=0 raw_g=0.534,0.205,-0.812 render_ms=35.8 tx_ms=22.7 frame_ms=28.0 max_gap_ms=84.0 sample_hz=200.4 heap=14072 drops=8 setup_ms=2.0 stack=3996,5656,4844 stages=19065,11243,2477,2405 mode=attitude speed=199.7 altitude_m=131.9 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 58.07,
+      "stage": "attitude",
+      "line": "fps=39.4 pitch=0.7 roll=0.6 valid=1 cal=400 demo=0 raw_g=-0.003,0.101,-0.978 render_ms=28.4 tx_ms=22.6 frame_ms=24.8 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.8 stack=3996,5656,4844 stages=13312,9872,2365,2318 mode=attitude speed=188.4 altitude_m=126.8 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 59.07,
+      "stage": "attitude",
+      "line": "fps=40.0 pitch=0.4 roll=0.2 valid=1 cal=400 demo=0 raw_g=-0.002,0.098,-0.974 render_ms=28.5 tx_ms=22.5 frame_ms=24.8 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.7 stack=3996,5656,4844 stages=13306,9886,2361,2323 mode=attitude speed=151.0 altitude_m=125.0 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 60.07,
+      "stage": "attitude",
+      "line": "fps=40.0 pitch=0.4 roll=0.1 valid=1 cal=400 demo=0 raw_g=-0.002,0.097,-0.974 render_ms=28.3 tx_ms=22.8 frame_ms=24.9 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.7 stack=3996,5656,4844 stages=13271,9705,2349,2359 mode=attitude speed=98.5 altitude_m=126.6 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 61.07,
+      "stage": "attitude",
+      "line": "fps=40.0 pitch=0.4 roll=0.0 valid=1 cal=400 demo=0 raw_g=-0.002,0.097,-0.976 render_ms=28.2 tx_ms=22.6 frame_ms=24.6 max_gap_ms=84.0 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.7 stack=3996,5656,4844 stages=13216,9669,2328,2383 mode=attitude speed=46.5 altitude_m=131.6 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 62.097,
+      "stage": "altimeter",
+      "line": "fps=39.2 pitch=3.5 roll=36.5 valid=1 cal=400 demo=0 raw_g=0.617,0.128,-0.783 render_ms=35.1 tx_ms=22.5 frame_ms=27.4 max_gap_ms=84.0 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.6 stack=3996,5656,4844 stages=18333,11186,2472,2411 mode=attitude speed=9.7 altitude_m=140.0 te_us=0 te_miss=0 te_pulses=0 patch=0"
+    },
+    {
+      "elapsed": 63.115,
+      "stage": "altimeter",
+      "line": "fps=44.6 pitch=9.0 roll=36.0 valid=1 cal=400 demo=1 raw_g=0.589,0.242,-0.793 render_ms=28.3 tx_ms=9.1 frame_ms=15.6 max_gap_ms=94.3 sample_hz=201.4 heap=14072 drops=8 setup_ms=2.3 stack=3692,5656,4124 stages=5226,23054,0,0 mode=altimeter speed=0.8 altitude_m=151.5 te_us=16491 te_miss=0 te_pulses=4426 patch=40448"
+    },
+    {
+      "elapsed": 64.122,
+      "stage": "altimeter",
+      "line": "fps=48.6 pitch=6.4 roll=32.2 valid=1 cal=400 demo=1 raw_g=0.523,0.215,-0.853 render_ms=35.8 tx_ms=10.6 frame_ms=17.3 max_gap_ms=94.3 sample_hz=201.6 heap=14072 drops=8 setup_ms=1.9 stack=3692,5656,4124 stages=6736,29018,0,0 mode=altimeter speed=22.1 altitude_m=165.9 te_us=16503 te_miss=0 te_pulses=4487 patch=45120"
+    },
+    {
+      "elapsed": 65.127,
+      "stage": "altimeter",
+      "line": "fps=51.9 pitch=4.4 roll=37.9 valid=1 cal=400 demo=1 raw_g=0.615,0.169,-0.786 render_ms=34.3 tx_ms=10.6 frame_ms=17.2 max_gap_ms=94.3 sample_hz=200.0 heap=14072 drops=8 setup_ms=1.4 stack=3692,5656,4124 stages=8406,25876,0,0 mode=altimeter speed=66.6 altitude_m=182.5 te_us=16491 te_miss=0 te_pulses=4548 patch=48960"
+    },
+    {
+      "elapsed": 66.128,
+      "stage": "altimeter",
+      "line": "fps=49.0 pitch=4.5 roll=36.3 valid=1 cal=400 demo=1 raw_g=0.586,0.173,-0.803 render_ms=32.5 tx_ms=7.2 frame_ms=15.5 max_gap_ms=94.3 sample_hz=199.8 heap=14072 drops=8 setup_ms=1.3 stack=3692,5656,4124 stages=5085,27417,0,0 mode=altimeter speed=120.6 altitude_m=201.2 te_us=16472 te_miss=0 te_pulses=4609 patch=33152"
+    },
+    {
+      "elapsed": 67.129,
+      "stage": "altimeter",
+      "line": "fps=52.6 pitch=4.5 roll=36.1 valid=1 cal=400 demo=1 raw_g=0.580,0.175,-0.809 render_ms=31.2 tx_ms=9.8 frame_ms=17.1 max_gap_ms=94.3 sample_hz=198.8 heap=14072 drops=8 setup_ms=1.6 stack=3692,5656,4124 stages=7510,23706,0,0 mode=altimeter speed=168.6 altitude_m=221.5 te_us=16482 te_miss=0 te_pulses=4668 patch=42368"
+    },
+    {
+      "elapsed": 68.134,
+      "stage": "altimeter",
+      "line": "fps=53.7 pitch=4.7 roll=35.8 valid=1 cal=400 demo=1 raw_g=0.580,0.175,-0.801 render_ms=34.5 tx_ms=10.4 frame_ms=16.6 max_gap_ms=94.3 sample_hz=200.0 heap=14072 drops=8 setup_ms=2.2 stack=3692,5656,4124 stages=7366,27138,0,0 mode=altimeter speed=196.5 altitude_m=243.1 te_us=16472 te_miss=0 te_pulses=4729 patch=44352"
+    },
+    {
+      "elapsed": 69.138,
+      "stage": "airspeed",
+      "line": "fps=49.8 pitch=4.8 roll=35.3 valid=1 cal=400 demo=1 raw_g=0.577,0.179,-0.804 render_ms=34.4 tx_ms=11.2 frame_ms=17.9 max_gap_ms=94.3 sample_hz=200.2 heap=14072 drops=8 setup_ms=1.7 stack=3692,5656,4124 stages=7086,27340,0,0 mode=altimeter speed=195.7 altitude_m=265.5 te_us=16479 te_miss=0 te_pulses=4791 patch=46272"
+    },
+    {
+      "elapsed": 70.144,
+      "stage": "airspeed",
+      "line": "fps=57.1 pitch=4.6 roll=35.2 valid=1 cal=400 demo=1 raw_g=0.567,0.179,-0.812 render_ms=12.5 tx_ms=4.2 frame_ms=17.3 max_gap_ms=94.3 sample_hz=200.8 heap=14072 drops=8 setup_ms=0.6 stack=3692,5656,4124 stages=2313,10188,0,0 mode=airspeed speed=166.2 altitude_m=288.2 te_us=16481 te_miss=0 te_pulses=4853 patch=20672"
+    },
+    {
+      "elapsed": 71.155,
+      "stage": "airspeed",
+      "line": "fps=59.5 pitch=4.6 roll=35.3 valid=1 cal=400 demo=1 raw_g=0.569,0.176,-0.813 render_ms=16.1 tx_ms=7.4 frame_ms=17.8 max_gap_ms=94.3 sample_hz=199.8 heap=14072 drops=8 setup_ms=0.8 stack=3692,5656,4124 stages=4823,11322,0,0 mode=airspeed speed=116.8 altitude_m=310.6 te_us=16503 te_miss=0 te_pulses=4914 patch=46980"
+    },
+    {
+      "elapsed": 72.154,
+      "stage": "airspeed",
+      "line": "fps=59.6 pitch=4.6 roll=35.3 valid=1 cal=400 demo=1 raw_g=0.577,0.172,-0.802 render_ms=18.0 tx_ms=7.0 frame_ms=16.8 max_gap_ms=94.3 sample_hz=199.0 heap=14072 drops=8 setup_ms=0.2 stack=3692,5656,4124 stages=6906,11074,0,0 mode=airspeed speed=63.1 altitude_m=331.9 te_us=16486 te_miss=0 te_pulses=4974 patch=55200"
+    },
+    {
+      "elapsed": 73.162,
+      "stage": "airspeed",
+      "line": "fps=59.8 pitch=4.5 roll=35.2 valid=1 cal=400 demo=1 raw_g=0.575,0.172,-0.804 render_ms=14.5 tx_ms=5.8 frame_ms=17.1 max_gap_ms=94.3 sample_hz=201.4 heap=14072 drops=8 setup_ms=0.5 stack=3692,5656,4124 stages=3829,10682,0,0 mode=airspeed speed=19.5 altitude_m=352.2 te_us=16494 te_miss=0 te_pulses=5036 patch=37536"
+    },
+    {
+      "elapsed": 74.162,
+      "stage": "airspeed",
+      "line": "fps=58.6 pitch=4.5 roll=35.3 valid=1 cal=400 demo=1 raw_g=0.575,0.176,-0.810 render_ms=16.7 tx_ms=6.6 frame_ms=16.0 max_gap_ms=94.3 sample_hz=199.0 heap=14072 drops=8 setup_ms=0.2 stack=3692,5656,4124 stages=5467,11240,0,0 mode=airspeed speed=0.5 altitude_m=370.5 te_us=16476 te_miss=0 te_pulses=5096 patch=54280"
+    },
+    {
+      "elapsed": 75.167,
+      "stage": "airspeed",
+      "line": "fps=55.7 pitch=4.5 roll=35.3 valid=1 cal=400 demo=1 raw_g=0.569,0.176,-0.808 render_ms=16.4 tx_ms=6.3 frame_ms=15.8 max_gap_ms=94.3 sample_hz=200.0 heap=14072 drops=8 setup_ms=0.2 stack=3692,5656,4124 stages=5219,11165,0,0 mode=airspeed speed=10.7 altitude_m=386.8 te_us=16495 te_miss=0 te_pulses=5157 patch=50960"
+    },
+    {
+      "elapsed": 76.179,
+      "stage": "hud_imu_return",
+      "line": "fps=59.8 pitch=4.3 roll=35.0 valid=1 cal=400 demo=1 raw_g=0.569,0.175,-0.825 render_ms=14.5 tx_ms=5.9 frame_ms=17.4 max_gap_ms=94.3 sample_hz=200.6 heap=14072 drops=8 setup_ms=0.4 stack=3692,5656,4124 stages=3851,10673,0,0 mode=airspeed speed=48.0 altitude_m=400.7 te_us=16488 te_miss=0 te_pulses=5219 patch=38088"
+    },
+    {
+      "elapsed": 77.224,
+      "stage": "hud_imu_return",
+      "line": "fps=59.8 pitch=3.0 roll=29.3 valid=1 cal=400 demo=0 raw_g=0.475,0.149,-0.862 render_ms=92.9 tx_ms=19.0 frame_ms=66.1 max_gap_ms=101.2 sample_hz=191.4 heap=14072 drops=8 setup_ms=0.9 stack=3692,5656,4124 stages=0,92912,0,0 mode=hud speed=101.2 altitude_m=411.6 te_us=16469 te_miss=0 te_pulses=5277 patch=130584"
+    },
+    {
+      "elapsed": 78.267,
+      "stage": "hud_imu_return",
+      "line": "fps=17.4 pitch=2.9 roll=28.8 valid=1 cal=400 demo=0 raw_g=0.473,0.149,-0.865 render_ms=82.9 tx_ms=17.5 frame_ms=66.2 max_gap_ms=101.2 sample_hz=199.4 heap=14072 drops=8 setup_ms=1.0 stack=3692,5656,4124 stages=0,82896,0,0 mode=hud speed=155.1 altitude_m=419.6 te_us=16476 te_miss=0 te_pulses=5341 patch=130584"
+    },
+    {
+      "elapsed": 79.317,
+      "stage": "hud_imu_return",
+      "line": "fps=14.9 pitch=2.2 roll=27.9 valid=1 cal=400 demo=0 raw_g=0.457,0.132,-0.865 render_ms=93.5 tx_ms=17.4 frame_ms=80.6 max_gap_ms=101.2 sample_hz=200.0 heap=14072 drops=8 setup_ms=0.8 stack=3692,5656,4124 stages=0,93488,0,0 mode=hud speed=191.7 altitude_m=424.1 te_us=16497 te_miss=0 te_pulses=5405 patch=130584"
+    },
+    {
+      "elapsed": 80.327,
+      "stage": "hud_imu_return",
+      "line": "fps=15.9 pitch=0.3 roll=27.9 valid=1 cal=400 demo=0 raw_g=0.463,0.098,-0.871 render_ms=91.0 tx_ms=18.3 frame_ms=65.5 max_gap_ms=101.2 sample_hz=201.0 heap=14072 drops=8 setup_ms=1.0 stack=3692,5656,4124 stages=0,90985,0,0 mode=hud speed=198.8 altitude_m=424.9 te_us=16488 te_miss=0 te_pulses=5466 patch=130584"
+    },
+    {
+      "elapsed": 81.352,
+      "stage": "hud_imu_return",
+      "line": "fps=15.7 pitch=1.7 roll=37.4 valid=1 cal=400 demo=0 raw_g=0.612,0.119,-0.798 render_ms=95.0 tx_ms=17.5 frame_ms=80.8 max_gap_ms=101.2 sample_hz=198.0 heap=14072 drops=8 setup_ms=1.1 stack=3692,5656,4124 stages=0,94964,0,0 mode=hud speed=175.9 altitude_m=422.2 te_us=16467 te_miss=0 te_pulses=5528 patch=130584"
+    },
+    {
+      "elapsed": 82.4,
+      "stage": "hud_imu_return",
+      "line": "fps=15.4 pitch=5.0 roll=23.7 valid=1 cal=400 demo=0 raw_g=0.415,0.179,-0.920 render_ms=80.6 tx_ms=19.9 frame_ms=52.1 max_gap_ms=101.2 sample_hz=201.3 heap=14072 drops=8 setup_ms=1.2 stack=3692,5656,4124 stages=0,80612,0,0 mode=hud speed=127.9 altitude_m=415.8 te_us=16463 te_miss=0 te_pulses=5591 patch=130584"
+    },
+    {
+      "elapsed": 83.423,
+      "stage": "hud_imu_return",
+      "line": "fps=15.4 pitch=16.8 roll=-2.0 valid=1 cal=400 demo=0 raw_g=-0.068,0.370,-0.937 render_ms=86.7 tx_ms=17.2 frame_ms=64.4 max_gap_ms=101.2 sample_hz=200.4 heap=14072 drops=8 setup_ms=0.9 stack=3692,5656,4124 stages=0,86687,0,0 mode=hud speed=72.4 altitude_m=406.3 te_us=16510 te_miss=0 te_pulses=5654 patch=130584"
+    },
+    {
+      "elapsed": 84.431,
+      "stage": "hud_imu_return",
+      "line": "fps=15.4 pitch=8.2 roll=21.1 valid=1 cal=400 demo=0 raw_g=0.414,0.214,-0.928 render_ms=81.9 tx_ms=18.9 frame_ms=51.1 max_gap_ms=101.2 sample_hz=199.4 heap=14072 drops=8 setup_ms=1.0 stack=3692,5656,4124 stages=0,81900,0,0 mode=hud speed=25.9 altitude_m=393.8 te_us=16473 te_miss=0 te_pulses=5714 patch=130584"
+    },
+    {
+      "elapsed": 85.451,
+      "stage": "hud_imu_return",
+      "line": "fps=15.9 pitch=8.7 roll=26.9 valid=1 cal=400 demo=0 raw_g=0.414,0.247,-0.884 render_ms=84.6 tx_ms=17.2 frame_ms=65.0 max_gap_ms=101.2 sample_hz=200.0 heap=14072 drops=8 setup_ms=0.8 stack=3692,5656,4124 stages=0,84620,0,0 mode=hud speed=1.6 altitude_m=378.5 te_us=16485 te_miss=0 te_pulses=5777 patch=130584"
+    },
+    {
+      "elapsed": 86.49,
+      "stage": "hud_imu_return",
+      "line": "fps=16.9 pitch=9.2 roll=38.9 valid=1 cal=400 demo=0 raw_g=0.574,0.319,-0.744 render_ms=82.4 tx_ms=19.0 frame_ms=50.9 max_gap_ms=101.2 sample_hz=201.2 heap=14072 drops=8 setup_ms=1.3 stack=3692,5656,4124 stages=0,82418,0,0 mode=hud speed=7.9 altitude_m=360.4 te_us=16480 te_miss=0 te_pulses=5839 patch=130584"
+    },
+    {
+      "elapsed": 87.512,
+      "stage": "hud_imu_return",
+      "line": "fps=16.2 pitch=11.6 roll=16.9 valid=1 cal=400 demo=0 raw_g=0.276,0.325,-0.948 render_ms=95.7 tx_ms=17.1 frame_ms=80.1 max_gap_ms=101.2 sample_hz=198.6 heap=14072 drops=8 setup_ms=0.9 stack=3692,5656,4124 stages=0,95696,0,0 mode=hud speed=42.5 altitude_m=340.6 te_us=16468 te_miss=0 te_pulses=5902 patch=130584"
+    },
+    {
+      "elapsed": 88.528,
+      "stage": "hud_imu_return",
+      "line": "fps=15.9 pitch=-2.1 roll=43.0 valid=1 cal=400 demo=0 raw_g=0.691,0.060,-0.739 render_ms=90.9 tx_ms=18.7 frame_ms=65.5 max_gap_ms=101.2 sample_hz=200.8 heap=14072 drops=8 setup_ms=1.0 stack=3692,5656,4124 stages=0,90925,0,0 mode=hud speed=94.6 altitude_m=319.4 te_us=16472 te_miss=0 te_pulses=5963 patch=130584"
+    },
+    {
+      "elapsed": 89.553,
+      "stage": "hud_imu_return",
+      "line": "fps=15.7 pitch=-1.5 roll=49.8 valid=1 cal=400 demo=0 raw_g=0.766,0.066,-0.671 render_ms=90.9 tx_ms=19.8 frame_ms=66.4 max_gap_ms=101.2 sample_hz=199.0 heap=14072 drops=8 setup_ms=1.6 stack=3692,5656,4124 stages=0,90880,0,0 mode=hud speed=148.8 altitude_m=296.9 te_us=16467 te_miss=0 te_pulses=6025 patch=130584"
+    },
+    {
+      "elapsed": 90.599,
+      "stage": "hud_imu_return",
+      "line": "fps=15.6 pitch=12.2 roll=3.6 valid=1 cal=400 demo=0 raw_g=0.030,0.300,-0.959 render_ms=90.3 tx_ms=19.6 frame_ms=65.8 max_gap_ms=101.2 sample_hz=201.7 heap=14072 drops=8 setup_ms=1.2 stack=3692,5656,4124 stages=0,90255,0,0 mode=hud speed=188.5 altitude_m=273.4 te_us=16457 te_miss=0 te_pulses=6089 patch=130584"
+    },
+    {
+      "elapsed": 91.599,
+      "stage": "hud_imu_return",
+      "line": "fps=15.2 pitch=1.7 roll=44.1 valid=1 cal=400 demo=0 raw_g=0.686,0.131,-0.725 render_ms=85.6 tx_ms=17.5 frame_ms=65.0 max_gap_ms=101.2 sample_hz=199.0 heap=14072 drops=8 setup_ms=0.9 stack=3692,5656,4124 stages=0,85614,0,0 mode=hud speed=199.7 altitude_m=251.0 te_us=16476 te_miss=0 te_pulses=6150 patch=130584"
+    },
+    {
+      "elapsed": 92.618,
+      "stage": "hud_imu_return",
+      "line": "fps=15.9 pitch=2.6 roll=43.0 valid=1 cal=400 demo=0 raw_g=0.684,0.134,-0.725 render_ms=92.1 tx_ms=19.7 frame_ms=66.1 max_gap_ms=101.2 sample_hz=200.2 heap=14072 drops=8 setup_ms=1.5 stack=3692,5656,4124 stages=0,92126,0,0 mode=hud speed=181.0 altitude_m=228.8 te_us=16492 te_miss=0 te_pulses=6211 patch=130584"
+    },
+    {
+      "elapsed": 93.664,
+      "stage": "hud_imu_return",
+      "line": "fps=15.9 pitch=2.5 roll=42.9 valid=1 cal=400 demo=0 raw_g=0.679,0.137,-0.736 render_ms=95.0 tx_ms=17.4 frame_ms=81.1 max_gap_ms=101.2 sample_hz=199.8 heap=14072 drops=8 setup_ms=1.1 stack=3692,5656,4124 stages=0,94969,0,0 mode=hud speed=136.2 altitude_m=207.0 te_us=16489 te_miss=0 te_pulses=6275 patch=130584"
+    },
+    {
+      "elapsed": 94.716,
+      "stage": "hud_imu_return",
+      "line": "fps=15.2 pitch=3.0 roll=42.4 valid=1 cal=400 demo=0 raw_g=0.671,0.145,-0.740 render_ms=83.7 tx_ms=19.5 frame_ms=51.2 max_gap_ms=101.2 sample_hz=200.6 heap=14072 drops=8 setup_ms=1.4 stack=3692,5656,4124 stages=0,83665,0,0 mode=hud speed=79.2 altitude_m=186.8 te_us=16493 te_miss=0 te_pulses=6338 patch=130584"
+    },
+    {
+      "elapsed": 95.723,
+      "stage": "hud_imu_return",
+      "line": "fps=15.2 pitch=0.1 roll=41.7 valid=1 cal=400 demo=0 raw_g=0.587,0.164,-0.783 render_ms=85.9 tx_ms=17.3 frame_ms=65.3 max_gap_ms=101.2 sample_hz=199.6 heap=14072 drops=8 setup_ms=1.0 stack=3692,5656,4124 stages=0,85946,0,0 mode=hud speed=31.1 altitude_m=169.6 te_us=16519 te_miss=0 te_pulses=6400 patch=130584"
+    }
+  ]
+}

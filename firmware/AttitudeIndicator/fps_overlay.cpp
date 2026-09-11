@@ -1,8 +1,14 @@
 #include "fps_overlay.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 namespace instrument {
+// C++11 builds may bind these constants by reference in clipping helpers.
+constexpr int FpsOverlay::X;
+constexpr int FpsOverlay::Y;
+constexpr int FpsOverlay::Width;
+constexpr int FpsOverlay::Height;
 namespace {
 // Five columns per glyph, bit 0 at the top. Generated UI uses no bitmap asset.
 const uint8_t digits[10][5]={
@@ -14,10 +20,11 @@ const uint8_t digits[10][5]={
 const uint8_t f[5]={0x7f,9,9,9,1},p[5]={0x7f,9,9,9,6},s[5]={0x46,0x49,0x49,0x49,0x31};
 const uint8_t d[5]={0x7f,0x41,0x41,0x22,0x1c},e[5]={0x7f,0x49,0x49,0x49,0x41};
 const uint8_t m[5]={0x7f,2,4,2,0x7f},o[5]={0x3e,0x41,0x41,0x41,0x3e};
+const uint8_t i[5]={0x41,0x41,0x7f,0x41,0x41};
 const uint8_t dot[5]={0,0x60,0x60,0,0},dash[5]={8,8,8,8,8},space[5]={};
 const uint8_t* glyph(char c){
  if(c>='0'&&c<='9')return digits[c-'0'];
- switch(c){case 'F':return f;case 'P':return p;case 'S':return s;case 'D':return d;case 'E':return e;case 'M':return m;case 'O':return o;case '.':return dot;case '-':return dash;default:return space;}
+ switch(c){case 'F':return f;case 'P':return p;case 'S':return s;case 'D':return d;case 'E':return e;case 'M':return m;case 'O':return o;case 'I':return i;case '.':return dot;case '-':return dash;default:return space;}
 }
 }
 void FpsOverlay::update(float fps){
@@ -40,24 +47,40 @@ void FpsOverlay::blit(uint16_t* frame,int stride) const{
   blitBand(frame,stride,0,Y+Height);
 }
 void FpsOverlay::blitBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn) const{
-  if(!frame || firstColumn<0 || firstColumn>X || stride<X+Width-firstColumn || firstRow<0 || rowCount<=0 || firstRow>=Y+Height)return;
+  if(!frame || firstColumn<0 || firstColumn>=X+Width || stride<=0 || firstRow<0 || rowCount<=0 || firstRow>=Y+Height)return;
+  const int left=std::max(X,firstColumn),columns=std::min(stride,X+Width-firstColumn)-(left-firstColumn);
+  if(columns<=0)return;
   const int first=firstRow>Y?firstRow:Y;
   // Subtract before comparing so even an excessive rowCount cannot overflow.
   for(int y=first;y<Y+Height && y-firstRow<rowCount;++y)
-    std::memcpy(frame+(static_cast<size_t>(y-firstRow)*stride+X-firstColumn),pixels_+(y-Y)*Width,Width*sizeof(uint16_t));
+    std::memcpy(frame+(static_cast<size_t>(y-firstRow)*stride+left-firstColumn),pixels_+(y-Y)*Width+left-X,columns*sizeof(uint16_t));
 }
 void FpsOverlay::blitDemoBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn) const{
-  const int xOrigin=209,yOrigin=414;
-  if(!frame || firstColumn<0 || firstColumn>xOrigin || stride<xOrigin+48-firstColumn || firstRow<0 || rowCount<=0 || firstRow>=yOrigin+14)return;
+  blitLegend(frame,stride,firstRow,rowCount,firstColumn,"DEMO",4);
+}
+void FpsOverlay::blitSimBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,bool opaque) const{
+  blitLegend(frame,stride,firstRow,rowCount,firstColumn,"SIM",3,opaque);
+}
+void FpsOverlay::blitLegend(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,const char* text,int count,bool opaque) const{
+  const int xOrigin=(466-count*12)/2,yOrigin=414;
+  const int x0=xOrigin-(opaque?4:0),x1=xOrigin+count*12+(opaque?4:0);
+  const int y0=yOrigin-(opaque?3:0),y1=yOrigin+14+(opaque?3:0);
+  if(!frame || firstColumn<0 || firstColumn>=x1 || stride<=0 || firstRow<0 || rowCount<=0 || firstRow>=y1)return;
+  const int left=std::max(x0,firstColumn),columns=std::min(stride,x1-firstColumn)-(left-firstColumn);
+  if(columns<=0)return;
   const uint16_t yellow=wireOrder_?0xe0ff:0xffe0;
-  const int first=firstRow>yOrigin?firstRow:yOrigin;
-  for(int y=first;y<yOrigin+14 && y-firstRow<rowCount;++y){
+  const uint16_t backing=wireOrder_?0x4108:0x0841;
+  for(int y=std::max(firstRow,y0);y<y1 && y-firstRow<rowCount;++y){
+    uint16_t* row=frame+(static_cast<size_t>(y-firstRow)*stride+left-firstColumn);
+    if(opaque)std::fill(row,row+columns,backing);
+    if(y<yOrigin||y>=yOrigin+14)continue;
     const int bit=(y-yOrigin)/2;
-    uint16_t* row=frame+(static_cast<size_t>(y-firstRow)*stride+xOrigin-firstColumn);
-    for(int letter=0;letter<4;++letter){
-      const uint8_t* bits=glyph("DEMO"[letter]);
+    for(int letter=0;letter<count;++letter){
+      const uint8_t* bits=glyph(text[letter]);
       for(int x=0;x<5;++x)if(bits[x]&(1u<<bit)){
-        row[letter*12+x*2]=yellow;row[letter*12+x*2+1]=yellow;
+        const int col=xOrigin+letter*12+x*2-left;
+        if(col>=0&&col<columns)row[col]=yellow;
+        if(col+1>=0&&col+1<columns)row[col+1]=yellow;
       }
     }
   }

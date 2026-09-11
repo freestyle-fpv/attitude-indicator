@@ -23,7 +23,7 @@ struct Pending {
 struct MockSpi {
   spi_device_t device;
   int queueDepth=0,cs=1;
-  bool owned=false,failAdd=false;
+  bool owned=false,failAdd=false,copied=false;
   unsigned commands=0,queued=0,completed=0,reused=0;
   size_t maxPending=0,bytesQueued=0;
   uint16_t columns[2]={},rows[2]={};
@@ -58,8 +58,9 @@ int expectedLeft(int first,int rows){
   return left&~1;
 }
 
-size_t checkBand(instrument::FastPanel& panel,InspectablePanel& display,int first,int rows){
-  const int left=expectedLeft(first,rows),width=466-2*left;
+size_t checkBand(instrument::FastPanel& panel,InspectablePanel& display,int first,int rows,int rectangleX=-1,int rectangleWidth=0){
+  spi.copied=rectangleX>=0;
+  const int left=spi.copied?rectangleX:expectedLeft(first,rows),width=spi.copied?rectangleWidth:466-2*left;
   const size_t pixels=static_cast<size_t>(width)*rows;
   std::vector<uint16_t> guarded(pixels+4,0xa53c);
   uint16_t* frame=guarded.data()+2;
@@ -75,14 +76,17 @@ size_t checkBand(instrument::FastPanel& panel,InspectablePanel& display,int firs
   spi.display=&display;spi.source=reinterpret_cast<const uint8_t*>(frame);
   spi.expected.assign(spi.source,spi.source+pixels*2);
   display.cacheWindow();
-  panel.presentBand(display,frame,first,rows);
+  std::vector<uint16_t> scratch(466*60+4,0x1234);
+  if(spi.copied)panel.presentRect(display,frame,left,first,width,rows,scratch.data()+2,scratch.size()-4);
+  else panel.presentBand(display,frame,first,rows);
+  require(scratch.front()==0x1234&&scratch.back()==0x1234,"DMA scratch guard modified");
   require(display.invalidated(),"vendor window cache left stale");
   require(!spi.owned && spi.pending.empty() && spi.cs==1,"band returned before DMA drained");
   require(spi.commands==2 && spi.queued==spi.completed,"incomplete commands or DMA results");
   require(spi.edges==std::vector<int>({0,1,0,1,0,1}),"incorrect CS command/payload framing");
   require(spi.bytesQueued==pixels*2 && spi.received==spi.expected,"compact payload byte mismatch");
   require(guarded==unchanged,"source pixels or buffer guards modified");
-  if(first==0 && rows==466){
+  if(!spi.copied && first==0 && rows==466){
     require(spi.queued>8 && spi.maxPending==8 && spi.reused>0,"full frame did not exercise queue reuse");
   }
   return pixels*2;
@@ -141,7 +145,7 @@ esp_err_t spi_device_queue_trans(spi_device_handle_t handle,spi_transaction_t* t
     tx->cmd==0 && tx->addr==0 && ext.command_bits==0 && ext.address_bits==0 && ext.dummy_bits==0,
     "continuation emits a command/address/dummy prefix");
   const size_t bytes=tx->length/8;
-  require(spi.bytesQueued+bytes<=spi.expected.size() && tx->tx_buffer==spi.source+spi.bytesQueued,
+  require(spi.bytesQueued+bytes<=spi.expected.size() && (spi.copied||tx->tx_buffer==spi.source+spi.bytesQueued),
     "DMA does not cover the compact source contiguously");
   require(std::memcmp(tx->tx_buffer,spi.expected.data()+spi.bytesQueued,bytes)==0,"DMA source bytes changed");
   if(std::find(spi.seen.begin(),spi.seen.end(),tx)!=spi.seen.end())++spi.reused;
@@ -180,6 +184,9 @@ int main(){
       random=random*1664525u+1013904223u;const int first=random%466;
       random=random*1664525u+1013904223u;const int rows=1+random%(466-first);
       totalBytes+=checkBand(panel,display,first,rows);++cases;
+    }
+    for(const auto& rect:std::vector<std::vector<int>>{{0,0,466,466},{200,20,60,260},{100,120,242,220},{180,432,106,22},{0,464,2,2}}){
+      totalBytes+=checkBand(panel,display,rect[1],rect[3],rect[0],rect[2]);++cases;
     }
     std::printf("FastPanel macro=%d: %zu bands, %zu compact payload bytes; windows, prefixes, DMA limits, FIFO lifetime, CS/bus ownership, unchanged source PASS\n",
       ESP32QSPI_MAX_PIXELS_AT_ONCE,cases,totalBytes);

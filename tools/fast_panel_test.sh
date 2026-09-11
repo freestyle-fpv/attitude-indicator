@@ -34,4 +34,10 @@ fi
 for TASK_PIXELS in 1024 2048 4096; do
   compile_panel_test "$TASK_PIXELS" firmware/AttitudeIndicator "$TASK_BUILD/test-$TASK_PIXELS"
   "$TASK_BUILD/test-$TASK_PIXELS"
+  "$TASK_CXX" -std=c++11 -O2 -g -Wall -Wextra -Werror \
+    -fsanitize=address,undefined -fno-omit-frame-pointer \
+    -DESP32QSPI_MAX_PIXELS_AT_ONCE="$TASK_PIXELS" -Itests/fast_panel_stubs \
+    -Ifirmware/AttitudeIndicator tests/fast_panel_batch_test.cpp \
+    firmware/AttitudeIndicator/fast_panel.cpp -o "$TASK_BUILD/batch-$TASK_PIXELS"
+  "$TASK_BUILD/batch-$TASK_PIXELS"
 done

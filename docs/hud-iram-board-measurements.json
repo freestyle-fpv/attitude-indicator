@@ -1,0 +1,224 @@
+{
+  "recorded_at": "2026-09-10T19:47:45.037098+08:00",
+  "port": "/dev/cu.usbmodem21101",
+  "firmware_sha256": "c03c13cbd040c90fb3c6e0125e0b33837b978b28e8004fea1ddace094faa2291",
+  "events": [
+    [
+      0,
+      "hud_imu",
+      "u"
+    ],
+    [
+      2,
+      "hud_demo",
+      "d"
+    ],
+    [
+      27,
+      "hud_imu_return",
+      "d"
+    ]
+  ],
+  "records": [
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "CPU MHz: 240; band rows: 60; DMA chunk pixels: 16384"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "AXP2101: present"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "CST9217 touch 0x5A: present; up=next, down=previous"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "AIRSPEED SIM. BOOT short: switch; hold 1.5s / d: demo. a: airspeed; h: attitude; c: calibrate; v135 + newline: simulated km/h; t: altimeter; u: HUD (IMU attitude, simulated IAS/ALT/HDG); b275 + newline: simulated meters (0-3000)."
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "fps=-1.0 pitch=0.0 roll=0.0 valid=0 cal=0 demo=1 raw_g=0.000,0.000,0.000 render_ms=0.0 tx_ms=0.0 frame_ms=0.0 max_gap_ms=0.0 sample_hz=0.0 heap=42276 drops=0 setup_ms=0.0 stack=3584,0,0 stages=0,0,0,0 mode=airspeed speed=135.0 altitude_m=275.0 te_us=0 te_miss=0 te_pulses=0 patch=0 touch=0 touch_err=0 touch_xy=0,0 touch_n=0 swipes=0"
+    },
+    {
+      "elapsed": 0.0,
+      "stage": "hud_imu",
+      "line": "SWIPE down -> hud"
+    },
+    {
+      "elapsed": 0.674,
+      "stage": "hud_imu",
+      "line": "fps=35.1 pitch=-1.6 roll=39.8 valid=1 cal=400 demo=0 raw_g=0.664,0.094,-0.770 render_ms=32.7 tx_ms=17.5 frame_ms=32.6 max_gap_ms=52.6 sample_hz=200.6 heap=41508 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=5584,32741,11584,21157 mode=hud speed=150.0 altitude_m=148.8 te_us=16466 te_miss=0 te_pulses=1404 patch=87296 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 1.702,
+      "stage": "hud_imu",
+      "line": "fps=30.2 pitch=0.0 roll=47.2 valid=1 cal=400 demo=0 raw_g=0.716,0.118,-0.712 render_ms=34.9 tx_ms=17.5 frame_ms=33.1 max_gap_ms=52.6 sample_hz=199.4 heap=41508 drops=22 setup_ms=2.7 stack=2556,5280,2488 stages=5503,34867,11673,23194 mode=hud speed=96.0 altitude_m=137.9 te_us=16470 te_miss=0 te_pulses=1466 patch=86016 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 2.708,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=6.3 roll=5.3 valid=1 cal=400 demo=1 raw_g=0.767,0.104,-0.643 render_ms=40.7 tx_ms=12.2 frame_ms=33.1 max_gap_ms=72.2 sample_hz=199.0 heap=41508 drops=22 setup_ms=1.5 stack=2556,5280,2488 stages=16189,40721,22852,17869 mode=hud speed=89.0 altitude_m=280.9 te_us=16458 te_miss=0 te_pulses=1525 patch=66560 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 3.733,
+      "stage": "hud_demo",
+      "line": "fps=30.0 pitch=8.6 roll=14.6 valid=1 cal=400 demo=1 raw_g=0.766,0.107,-0.649 render_ms=33.5 tx_ms=16.1 frame_ms=34.1 max_gap_ms=72.2 sample_hz=199.0 heap=41508 drops=22 setup_ms=2.3 stack=2556,5280,2488 stages=4669,33518,10423,23095 mode=hud speed=94.3 altitude_m=291.9 te_us=16486 te_miss=0 te_pulses=1588 patch=79360 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 4.742,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=10.6 roll=21.5 valid=1 cal=400 demo=1 raw_g=0.762,0.111,-0.642 render_ms=43.9 tx_ms=16.3 frame_ms=52.8 max_gap_ms=72.2 sample_hz=204.0 heap=41508 drops=22 setup_ms=2.6 stack=2556,5280,2488 stages=18004,43859,23409,20450 mode=hud speed=98.6 altitude_m=302.2 te_us=16466 te_miss=0 te_pulses=1652 patch=79360 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 5.763,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=12.1 roll=24.8 valid=1 cal=400 demo=1 raw_g=0.768,0.111,-0.650 render_ms=45.1 tx_ms=16.3 frame_ms=52.5 max_gap_ms=72.2 sample_hz=199.0 heap=41508 drops=22 setup_ms=2.3 stack=2556,5280,2488 stages=18090,45073,25148,19925 mode=hud speed=101.2 altitude_m=311.3 te_us=16474 te_miss=0 te_pulses=1712 patch=81920 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 6.763,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=12.9 roll=24.1 valid=1 cal=400 demo=1 raw_g=0.772,0.111,-0.642 render_ms=31.9 tx_ms=14.7 frame_ms=15.2 max_gap_ms=72.2 sample_hz=200.0 heap=41508 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=4754,31851,10648,21203 mode=hud speed=102.0 altitude_m=318.8 te_us=16468 te_miss=0 te_pulses=1773 patch=82432 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 7.772,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=12.9 roll=19.5 valid=1 cal=400 demo=1 raw_g=0.771,0.116,-0.638 render_ms=34.1 tx_ms=16.3 frame_ms=31.8 max_gap_ms=72.2 sample_hz=199.2 heap=41508 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=4607,34125,12561,21564 mode=hud speed=100.8 altitude_m=324.6 te_us=16465 te_miss=0 te_pulses=1834 patch=78848 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 8.773,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=12.3 roll=12.0 valid=1 cal=400 demo=1 raw_g=0.767,0.123,-0.651 render_ms=44.3 tx_ms=14.8 frame_ms=50.8 max_gap_ms=72.2 sample_hz=198.8 heap=41508 drops=22 setup_ms=2.4 stack=2556,5280,2488 stages=18031,44313,24025,20288 mode=hud speed=97.8 altitude_m=328.3 te_us=16479 te_miss=0 te_pulses=1896 patch=70912 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 9.787,
+      "stage": "hud_demo",
+      "line": "fps=31.0 pitch=11.0 roll=2.2 valid=1 cal=400 demo=1 raw_g=0.770,0.122,-0.644 render_ms=32.7 tx_ms=12.9 frame_ms=15.4 max_gap_ms=72.2 sample_hz=203.0 heap=41508 drops=22 setup_ms=1.7 stack=2556,5280,2488 stages=3872,32676,9994,22682 mode=hud speed=93.3 altitude_m=329.9 te_us=16478 te_miss=0 te_pulses=1957 patch=72448 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 10.812,
+      "stage": "hud_demo",
+      "line": "fps=29.8 pitch=9.2 roll=-7.8 valid=1 cal=400 demo=1 raw_g=0.775,0.126,-0.637 render_ms=44.4 tx_ms=14.5 frame_ms=50.9 max_gap_ms=72.2 sample_hz=198.0 heap=41420 drops=22 setup_ms=2.0 stack=2556,5280,2488 stages=18275,44383,23369,21014 mode=hud speed=87.8 altitude_m=329.3 te_us=16486 te_miss=0 te_pulses=2020 patch=73728 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 11.825,
+      "stage": "hud_demo",
+      "line": "fps=30.9 pitch=6.9 roll=-16.6 valid=1 cal=400 demo=1 raw_g=0.845,0.137,-0.553 render_ms=45.3 tx_ms=15.3 frame_ms=51.1 max_gap_ms=72.2 sample_hz=202.4 heap=41420 drops=22 setup_ms=2.7 stack=2556,5280,2488 stages=18627,45311,24584,20727 mode=hud speed=82.1 altitude_m=326.4 te_us=16500 te_miss=0 te_pulses=2082 patch=76288 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 12.849,
+      "stage": "hud_demo",
+      "line": "fps=29.7 pitch=4.5 roll=-22.7 valid=1 cal=400 demo=1 raw_g=0.806,0.167,-0.597 render_ms=47.2 tx_ms=15.9 frame_ms=51.5 max_gap_ms=72.2 sample_hz=198.4 heap=41420 drops=22 setup_ms=2.6 stack=2556,5280,2488 stages=18953,47239,27564,19675 mode=hud speed=77.0 altitude_m=321.4 te_us=16506 te_miss=0 te_pulses=2142 patch=77568 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 13.873,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=2.1 roll=-25.0 valid=1 cal=400 demo=1 raw_g=0.792,0.236,-0.562 render_ms=32.9 tx_ms=16.9 frame_ms=32.7 max_gap_ms=72.2 sample_hz=199.2 heap=41420 drops=22 setup_ms=2.3 stack=2556,5280,2488 stages=4857,32886,12157,20729 mode=hud speed=72.9 altitude_m=314.4 te_us=16466 te_miss=0 te_pulses=2205 patch=82688 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 14.904,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=-0.0 roll=-23.2 valid=1 cal=400 demo=1 raw_g=0.827,0.201,-0.567 render_ms=47.6 tx_ms=16.0 frame_ms=51.1 max_gap_ms=72.2 sample_hz=198.8 heap=41420 drops=22 setup_ms=2.7 stack=2556,5280,2488 stages=19478,47569,27531,20038 mode=hud speed=70.5 altitude_m=305.8 te_us=16482 te_miss=0 te_pulses=2266 patch=75264 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 15.923,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=-1.7 roll=-17.6 valid=1 cal=400 demo=1 raw_g=0.826,0.214,-0.565 render_ms=27.5 tx_ms=12.7 frame_ms=13.7 max_gap_ms=72.2 sample_hz=200.0 heap=41420 drops=22 setup_ms=2.0 stack=2556,5280,2488 stages=4647,27504,7721,19783 mode=hud speed=70.1 altitude_m=296.0 te_us=16502 te_miss=0 te_pulses=2327 patch=70656 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 16.938,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=-2.7 roll=-9.0 valid=1 cal=400 demo=1 raw_g=0.816,0.181,-0.519 render_ms=30.7 tx_ms=13.0 frame_ms=16.0 max_gap_ms=72.2 sample_hz=203.0 heap=41420 drops=22 setup_ms=2.1 stack=2556,5280,2488 stages=4036,30709,10049,20660 mode=hud speed=71.7 altitude_m=285.1 te_us=16517 te_miss=0 te_pulses=2391 patch=69120 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 17.969,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=-3.0 roll=1.0 valid=1 cal=400 demo=1 raw_g=0.816,0.169,-0.593 render_ms=42.4 tx_ms=13.9 frame_ms=51.6 max_gap_ms=72.2 sample_hz=197.9 heap=41420 drops=22 setup_ms=2.4 stack=2556,5280,2488 stages=16728,42354,20793,21561 mode=hud speed=75.1 altitude_m=274.0 te_us=16485 te_miss=0 te_pulses=2454 patch=68608 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 18.987,
+      "stage": "hud_demo",
+      "line": "fps=30.9 pitch=-2.5 roll=10.9 valid=1 cal=400 demo=1 raw_g=0.750,0.208,-0.607 render_ms=33.4 tx_ms=13.7 frame_ms=15.4 max_gap_ms=72.2 sample_hz=202.4 heap=41420 drops=22 setup_ms=2.0 stack=2556,5280,2488 stages=4715,33365,11275,22090 mode=hud speed=79.9 altitude_m=262.7 te_us=16485 te_miss=0 te_pulses=2515 patch=72960 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 20.006,
+      "stage": "hud_demo",
+      "line": "fps=29.8 pitch=-1.4 roll=18.9 valid=1 cal=400 demo=1 raw_g=0.635,0.297,-0.910 render_ms=29.9 tx_ms=13.2 frame_ms=14.7 max_gap_ms=72.2 sample_hz=200.4 heap=41420 drops=22 setup_ms=1.9 stack=2556,5280,2488 stages=4612,29879,9141,20738 mode=hud speed=85.5 altitude_m=252.1 te_us=16489 te_miss=0 te_pulses=2577 patch=73216 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 21.027,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=0.3 roll=23.9 valid=1 cal=400 demo=1 raw_g=0.666,0.223,-0.737 render_ms=28.9 tx_ms=13.3 frame_ms=14.2 max_gap_ms=72.2 sample_hz=199.8 heap=41420 drops=22 setup_ms=1.7 stack=2556,5280,2488 stages=4749,28945,8791,20154 mode=hud speed=91.1 altitude_m=242.5 te_us=16489 te_miss=0 te_pulses=2639 patch=76544 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 22.052,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=2.5 roll=24.9 valid=1 cal=400 demo=1 raw_g=0.664,0.159,-0.722 render_ms=52.0 tx_ms=17.2 frame_ms=32.0 max_gap_ms=72.2 sample_hz=198.8 heap=41420 drops=22 setup_ms=2.6 stack=2556,5280,2488 stages=5069,51971,30462,21509 mode=hud speed=96.1 altitude_m=234.1 te_us=16480 te_miss=0 te_pulses=2703 patch=83712 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 23.068,
+      "stage": "hud_demo",
+      "line": "fps=30.3 pitch=4.9 roll=21.8 valid=1 cal=400 demo=1 raw_g=0.625,0.108,-0.750 render_ms=35.3 tx_ms=17.5 frame_ms=33.8 max_gap_ms=72.2 sample_hz=199.8 heap=41420 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=4816,35280,12639,22641 mode=hud speed=99.8 altitude_m=227.6 te_us=16470 te_miss=0 te_pulses=2763 patch=84736 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 24.1,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=7.3 roll=15.2 valid=1 cal=400 demo=1 raw_g=0.638,0.106,-0.772 render_ms=46.5 tx_ms=16.6 frame_ms=51.9 max_gap_ms=72.2 sample_hz=198.6 heap=41420 drops=22 setup_ms=3.1 stack=2556,5280,2488 stages=19123,46531,25828,20703 mode=hud speed=101.7 altitude_m=222.9 te_us=16478 te_miss=0 te_pulses=2825 patch=80128 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 25.116,
+      "stage": "hud_demo",
+      "line": "fps=30.4 pitch=9.5 roll=6.0 valid=1 cal=400 demo=1 raw_g=0.622,0.103,-0.778 render_ms=29.5 tx_ms=12.2 frame_ms=14.6 max_gap_ms=72.2 sample_hz=199.8 heap=41420 drops=22 setup_ms=1.7 stack=2556,5280,2488 stages=3809,29532,9692,19840 mode=hud speed=101.7 altitude_m=220.4 te_us=16497 te_miss=0 te_pulses=2885 patch=67584 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 26.141,
+      "stage": "hud_demo",
+      "line": "fps=30.9 pitch=11.3 roll=-4.1 valid=1 cal=400 demo=1 raw_g=0.483,0.103,-0.857 render_ms=28.4 tx_ms=11.8 frame_ms=15.6 max_gap_ms=72.2 sample_hz=200.0 heap=41420 drops=22 setup_ms=1.5 stack=2556,5280,2488 stages=4131,28438,7193,21245 mode=hud speed=99.8 altitude_m=220.2 te_us=16488 te_miss=0 te_pulses=2947 patch=67840 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 27.157,
+      "stage": "hud_imu_return",
+      "line": "fps=29.8 pitch=12.5 roll=-13.7 valid=1 cal=400 demo=1 raw_g=0.311,0.115,-0.936 render_ms=47.8 tx_ms=13.7 frame_ms=15.4 max_gap_ms=72.2 sample_hz=202.8 heap=41420 drops=22 setup_ms=2.2 stack=2556,5280,2488 stages=4344,47811,26768,21043 mode=hud speed=96.0 altitude_m=222.3 te_us=16477 te_miss=0 te_pulses=3011 patch=74752 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 28.175,
+      "stage": "hud_imu_return",
+      "line": "fps=30.3 pitch=0.4 roll=17.9 valid=1 cal=400 demo=0 raw_g=0.295,0.115,-0.939 render_ms=29.5 tx_ms=13.0 frame_ms=14.2 max_gap_ms=76.3 sample_hz=200.4 heap=41420 drops=22 setup_ms=1.7 stack=2556,5280,2488 stages=4559,29540,11068,18472 mode=hud speed=11.0 altitude_m=412.3 te_us=16478 te_miss=0 te_pulses=3073 patch=71168 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 29.207,
+      "stage": "hud_imu_return",
+      "line": "fps=29.9 pitch=0.4 roll=17.0 valid=1 cal=400 demo=0 raw_g=0.282,0.115,-0.941 render_ms=47.2 tx_ms=16.7 frame_ms=33.3 max_gap_ms=76.3 sample_hz=195.7 heap=41420 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=4549,47226,27685,19541 mode=hud speed=48.2 altitude_m=401.6 te_us=16484 te_miss=0 te_pulses=3135 patch=79872 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 30.222,
+      "stage": "hud_imu_return",
+      "line": "fps=29.7 pitch=0.5 roll=14.9 valid=1 cal=400 demo=0 raw_g=0.245,0.115,-0.948 render_ms=35.0 tx_ms=17.0 frame_ms=32.6 max_gap_ms=76.3 sample_hz=203.0 heap=41420 drops=22 setup_ms=2.5 stack=2556,5280,2488 stages=4853,34980,12334,22646 mode=hud speed=102.0 altitude_m=387.8 te_us=16490 te_miss=0 te_pulses=3197 patch=82688 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 31.25,
+      "stage": "hud_imu_return",
+      "line": "fps=30.3 pitch=0.4 roll=10.7 valid=1 cal=400 demo=0 raw_g=0.177,0.110,-0.965 render_ms=31.5 tx_ms=13.1 frame_ms=14.9 max_gap_ms=76.3 sample_hz=197.5 heap=41420 drops=22 setup_ms=1.9 stack=2556,5280,2488 stages=4483,31540,11614,19926 mode=hud speed=154.8 altitude_m=371.4 te_us=16492 te_miss=0 te_pulses=3257 patch=72704 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 32.27,
+      "stage": "hud_imu_return",
+      "line": "fps=30.4 pitch=0.3 roll=10.1 valid=1 cal=400 demo=0 raw_g=0.167,0.109,-0.965 render_ms=37.4 tx_ms=11.8 frame_ms=32.8 max_gap_ms=76.3 sample_hz=202.0 heap=41420 drops=22 setup_ms=1.9 stack=2556,5280,2488 stages=16263,37415,21246,16169 mode=hud speed=191.1 altitude_m=352.6 te_us=16500 te_miss=0 te_pulses=3321 patch=63744 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 33.308,
+      "stage": "hud_imu_return",
+      "line": "fps=30.9 pitch=0.2 roll=9.9 valid=1 cal=400 demo=0 raw_g=0.162,0.108,-0.965 render_ms=28.3 tx_ms=11.8 frame_ms=15.1 max_gap_ms=76.3 sample_hz=199.4 heap=41420 drops=22 setup_ms=1.6 stack=2556,5280,2488 stages=4378,28344,8718,19626 mode=hud speed=198.9 altitude_m=331.9 te_us=16494 te_miss=0 te_pulses=3382 patch=64256 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    },
+    {
+      "elapsed": 34.314,
+      "stage": "hud_imu_return",
+      "line": "fps=30.8 pitch=0.2 roll=9.1 valid=1 cal=400 demo=0 raw_g=0.151,0.107,-0.968 render_ms=39.0 tx_ms=11.8 frame_ms=33.1 max_gap_ms=76.3 sample_hz=198.8 heap=41420 drops=22 setup_ms=1.6 stack=2556,5280,2488 stages=16076,38991,21201,17790 mode=hud speed=176.8 altitude_m=310.5 te_us=16511 te_miss=0 te_pulses=3443 patch=66560 touch=12 touch_err=0 touch_xy=0,0 touch_n=0 swipes=1"
+    }
+  ]
+}

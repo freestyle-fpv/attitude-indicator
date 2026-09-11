@@ -27,8 +27,11 @@ class FpsOverlay {
   void blitBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0) const;
   // Transparent yellow DEMO legend at (209,414), within a 48x14 rectangle.
   void blitDemoBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0) const;
+  // Opaque SIM backing keeps a full-circle dial's ticks and needles out of the label.
+  void blitSimBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0,bool opaque=false) const;
   uint16_t* pixels(){return pixels_;}
  private:
+  void blitLegend(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,const char* text,int count,bool opaque=false) const;
   uint16_t pixels_[Width*Height];
   int lastTenths_=-2;
   bool wireOrder_;

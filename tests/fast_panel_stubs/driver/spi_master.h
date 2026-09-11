@@ -31,6 +31,8 @@ struct spi_device_interface_config_t {
   int clock_speed_hz, spics_io_num;
   uint32_t flags;
   int queue_size;
+  void (*pre_cb)(spi_transaction_t*)=nullptr;
+  void (*post_cb)(spi_transaction_t*)=nullptr;
 };
 esp_err_t spi_bus_add_device(int,const spi_device_interface_config_t*,spi_device_handle_t*);
 esp_err_t spi_device_acquire_bus(spi_device_handle_t,TickType_t);

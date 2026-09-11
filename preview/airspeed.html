@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>空速表 · 466 × 466</title>
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f3efdc;background:#111211;--cream:#fffbd0;--muted:#989a90;--line:#34362f}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}main{max-width:1160px;margin:auto;padding:38px 42px 26px}header{display:flex;align-items:center;justify-content:space-between;padding-bottom:23px;border-bottom:1px solid var(--line);gap:20px}.eyebrow{font:10px ui-monospace,monospace;letter-spacing:2.6px;color:var(--muted)}h1{font-size:25px;font-weight:500;margin:9px 0 0}.spec{text-align:right;color:var(--muted);font:11px/1.9 ui-monospace,monospace}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 282px;align-items:center;gap:64px;padding:36px 0}.dial-stage{min-width:0}.dial-wrap{max-width:580px;aspect-ratio:1;margin:auto;transition:max-width .2s ease}.dial-wrap.actual{max-width:466px}canvas{width:100%;height:auto;aspect-ratio:1;display:block;border-radius:50%;background:#191918}.caption{display:flex;justify-content:space-between;gap:12px;margin-top:22px;color:var(--muted);font-size:11px}.control-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;font-size:13px}.en{display:block;font:10px ui-monospace,monospace;letter-spacing:2px;color:var(--muted);margin-top:7px}.speed-value{display:flex;gap:8px;align-items:baseline}.speed-value input{width:95px;background:none;border:0;border-bottom:1px solid #474a40;padding:3px 0;text-align:right;font-size:39px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--cream);border-radius:0;appearance:textfield}.speed-value input::-webkit-inner-spin-button,.speed-value input::-webkit-outer-spin-button{appearance:none;margin:0}.unit{font-size:12px;color:var(--muted)}input[type=range]{display:block;width:100%;height:5px;accent-color:var(--cream);margin:0;cursor:pointer}.endpoints{display:flex;justify-content:space-between;margin-top:11px;color:#8e9286;font:10px ui-monospace,monospace}.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:24px 0 28px}button{background:#20221e;border:1px solid #3a3e34;color:#d9dccf;border-radius:5px;padding:10px 8px;font-size:12px;transition:background .15s}.presets button:hover,.size-switch button:hover{background:#33382d}.presets button[aria-pressed=true]{color:var(--cream);border-color:#bbb99b}button:focus-visible,input:focus-visible{outline:2px solid var(--cream);outline-offset:5px}.demo{width:100%;border:0;background:var(--cream);color:#25261e;font-weight:600;padding:15px}.demo:hover{background:#efebbf}.demo[aria-pressed=true]{background:#42493a;color:var(--cream)}.options{margin-top:28px;border-top:1px solid var(--line)}.option{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);font-size:12px}.toggle{display:flex;align-items:center;gap:8px;cursor:pointer;color:#c5c9b9}.toggle input{width:16px;height:16px;margin:0;accent-color:var(--cream)}.size-switch{display:flex;gap:4px}.size-switch button{padding:7px 9px;font-size:11px}.size-switch button[aria-pressed=true]{color:#24251f;background:#e8e6d1;border-color:#e8e6d1}.note{color:var(--muted);font-size:11px;line-height:1.9;margin:20px 0 0}.footer{border-top:1px solid var(--line);padding-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:11px}.save{padding:8px 12px;font-size:11px}.footer #motionState{color:#d9ddc9}.live{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+@media(max-width:780px){main{padding:25px 22px}.workspace{grid-template-columns:1fr;gap:32px;padding:28px 0}.dial-wrap{max-width:520px}.panel{width:100%;max-width:520px;margin:auto}.caption{max-width:520px;margin:18px auto 0}.spec{font-size:9px}h1{font-size:22px}.footer{flex-wrap:wrap}.speed-value input{font-size:34px}}
+@media(prefers-reduced-motion:reduce){.dial-wrap{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header><div><div class="eyebrow">MODEL COCKPIT / 02</div><h1>圆形空速表</h1></div><div class="spec">ESP32-S3 · AMOLED 1.75″<br>466 × 466 PX</div></header>
+  <div class="workspace">
+    <section class="dial-stage" aria-label="空速仪表预览">
+      <div class="dial-wrap" id="dialWrap"><canvas id="dial" width="932" height="932" role="img" aria-label="空速表，135 千米每小时，量程 0 至 200 千米每小时">空速表需要浏览器支持 Canvas。</canvas></div>
+      <div class="caption"><span>奶白刻度 · 机械指针</span><span id="sizeLabel">放大预览</span></div>
+    </section>
+    <section class="panel" aria-label="空速预览控制">
+      <div class="control-head"><label for="speed">模拟空速<span class="en">AIRSPEED</span></label><div class="speed-value"><input id="speedNumber" type="number" min="0" max="200" step="1" value="135" aria-label="模拟空速，千米每小时"><span class="unit">km/h</span></div></div>
+      <input id="speed" type="range" min="0" max="200" step="1" value="135" aria-label="调整模拟空速">
+      <div class="endpoints"><span>0</span><span>100</span><span>200 km/h</span></div>
+      <div class="presets" aria-label="预设速度"><button type="button" data-speed="0" aria-pressed="false">0</button><button type="button" data-speed="60" aria-pressed="false">60</button><button type="button" data-speed="120" aria-pressed="false">120</button><button type="button" data-speed="180" aria-pressed="false">180</button></div>
+      <button type="button" class="demo" id="demo" aria-pressed="false">开始自动演示</button>
+      <div class="options">
+        <div class="option"><span>预览尺寸</span><div class="size-switch"><button type="button" id="actualSize" aria-pressed="false">466 px</button><button type="button" id="largeSize" aria-pressed="true">放大</button></div></div>
+        <div class="option"><label class="toggle" for="bands"><input type="checkbox" id="bands" checked>显示速度色带</label><span class="unit">绿 / 黄 / 红</span></div>
+      </div>
+      <p class="note">拖动滑块或输入速度，观察指针变化。<br>色带区间为视觉示例，可按机型调整。</p>
+    </section>
+  </div>
+  <footer class="footer"><span id="motionState" role="status">手动预览</span><span>0–200 km/h · 单针表盘</span><button type="button" class="save" id="save">保存表盘 PNG</button></footer>
+</main>
+<script>
+'use strict';
+(() => {
+  const SIZE = 466, CENTER = 233, MAX_SPEED = 200, CREAM = '#fffbd0';
+  const canvas = document.querySelector('#dial'), ctx = canvas.getContext('2d');
+  const face = document.createElement('canvas'), faceCtx = face.getContext('2d');
+  const slider = document.querySelector('#speed'), number = document.querySelector('#speedNumber');
+  const demoButton = document.querySelector('#demo'), bands = document.querySelector('#bands');
+  const status = document.querySelector('#motionState');
+  const presets = [...document.querySelectorAll('[data-speed]')];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let target = 135, shown = 135, demo = false, demoTime = 0, demoOrigin = 0, lastTime = 0, frameId = 0;
+  let density = 2;
+  const angle = value => (-135 + value / MAX_SPEED * 270) * Math.PI / 180;
+  const point = (radius, radians) => [CENTER + Math.sin(radians) * radius, CENTER - Math.cos(radians) * radius];
+  function line(context, x1, y1, x2, y2, width, color) {
+    context.beginPath(); context.moveTo(x1, y1); context.lineTo(x2, y2);
+    context.lineWidth = width; context.strokeStyle = color; context.lineCap = 'round'; context.stroke();
+  }
+  function polygon(context, points, color) {
+    context.beginPath(); points.forEach(([x,y], i) => i ? context.lineTo(x,y) : context.moveTo(x,y));
+    context.closePath(); context.fillStyle = color; context.fill();
+  }
+  function circle(context, x, y, radius, color) {
+    context.beginPath(); context.arc(x,y,radius,0,Math.PI*2); context.fillStyle=color; context.fill();
+  }
+  function scaleArc(start, end, color, width = 12) {
+    faceCtx.beginPath(); faceCtx.arc(CENTER,CENTER,233-width/2,angle(start)-Math.PI/2,angle(end)-Math.PI/2);
+    faceCtx.lineWidth=width; faceCtx.lineCap='butt'; faceCtx.strokeStyle=color; faceCtx.stroke();
+  }
+  function buildFace() {
+    face.width = face.height = Math.round(SIZE * density);
+    faceCtx.setTransform(density,0,0,density,0,0);
+    circle(faceCtx,CENTER,CENTER,233,'#191918');
+    circle(faceCtx,CENTER,CENTER,124,'#323231');
+    if (bands.checked) {
+      scaleArc(0,140,'#76ad70'); scaleArc(140,180,'#e5cb5d'); scaleArc(180,MAX_SPEED,'#df5b4e');
+    }
+    for(let speed=0; speed<=MAX_SPEED; speed+=5) {
+      const major = speed % 20 === 0, middle = speed % 10 === 0;
+      const a = angle(speed), outer = point(210,a), inner = point(major?186:middle?196:199,a);
+      line(faceCtx,...outer,...inner,major?6:3.6,CREAM);
+      if(major) {
+        const label = point(148,a);
+        faceCtx.fillStyle=CREAM; faceCtx.font='700 34px Arial, Helvetica, sans-serif';
+        faceCtx.textAlign='center'; faceCtx.textBaseline='middle';
+        faceCtx.fillText(String(speed),label[0],label[1]+2);
+      }
+    }
+    faceCtx.textAlign='center'; faceCtx.textBaseline='middle'; faceCtx.fillStyle=CREAM;
+    faceCtx.font='700 21px Arial, Helvetica, sans-serif'; faceCtx.fillText('AIR SPEED',CENTER,177);
+    faceCtx.font='600 20px Arial, Helvetica, sans-serif'; faceCtx.fillText('km/h',CENTER,317);
+  }
+  function drawNeedle(context) {
+    context.save(); context.translate(CENTER,CENTER); context.rotate(angle(shown));
+    // Counterweight sits behind the single airspeed pointer.
+    const metal=context.createLinearGradient(-12,0,12,0);
+    metal.addColorStop(0,'#242424');metal.addColorStop(.55,'#6f706d');metal.addColorStop(1,'#989b96');
+    // Canvas shadows use backing pixels; scale them to keep the same depth at every preview size.
+    context.shadowColor='rgba(0,0,0,.8)';context.shadowBlur=6*density;
+    context.shadowOffsetX=3*density;context.shadowOffsetY=4*density;
+    polygon(context,[[-6,5],[6,5],[7,44],[-7,44]],metal);
+    circle(context,0,48,13,metal);
+    polygon(context,[[-5,10],[-7,-135],[0,-171],[7,-135],[5,10]],CREAM);
+    context.restore();
+    const cap=context.createLinearGradient(CENTER-18,CENTER-10,CENTER+18,CENTER+10);
+    cap.addColorStop(0,'#343534');cap.addColorStop(.5,'#62645f');cap.addColorStop(1,'#a0a29b');
+    context.save();
+    context.shadowColor='rgba(0,0,0,.65)';context.shadowBlur=4*density;
+    context.shadowOffsetX=2*density;context.shadowOffsetY=3*density;
+    circle(context,CENTER,CENTER,18,cap);
+    context.restore();
+    circle(context,CENTER,CENTER,10.8,'#1d1f1c');circle(context,CENTER,CENTER,9.2,'#373936');
+  }
+  function paint() {
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(face,0,0);
+    ctx.setTransform(density,0,0,density,0,0);drawNeedle(ctx);
+  }
+  function resize() {
+    const bounds=canvas.getBoundingClientRect();
+    density=Math.max(2,Math.min(4,bounds.width * (window.devicePixelRatio||1) / SIZE));
+    canvas.width=canvas.height=Math.round(SIZE*density);buildFace();paint();
+  }
+  function syncControls() {
+    const rounded=Math.round(target);slider.value=rounded;number.value=rounded;
+    canvas.setAttribute('aria-label',`空速表，${rounded} 千米每小时，量程 0 至 ${MAX_SPEED} 千米每小时`);
+    presets.forEach(button=>button.setAttribute('aria-pressed',String(+button.dataset.speed===rounded)));
+  }
+  function queue() {
+    if(!frameId && !document.hidden) frameId=requestAnimationFrame(tick);
+  }
+  function tick(now) {
+    frameId=0;
+    const dt=lastTime?Math.min((now-lastTime)/1000,.05):1/60;lastTime=now;
+    if(demo) {
+      demoTime+=dt;
+      target=demoOrigin+(MAX_SPEED/2-demoOrigin)*(1-Math.exp(-demoTime*.7))+MAX_SPEED/2*Math.sin(demoTime*.55)*(1-Math.exp(-demoTime*.7));
+      syncControls();
+    }
+    shown=reduceMotion.matches?target:shown+(target-shown)*(1-Math.exp(-dt*14));
+    if(Math.abs(target-shown)<.015) shown=target;
+    paint();
+    if(demo || shown!==target) queue();else lastTime=0;
+  }
+  function stopDemo() {
+    demo=false;demoButton.setAttribute('aria-pressed','false');demoButton.textContent='开始自动演示';status.textContent='手动预览';
+  }
+  function setSpeed(value) {
+    if(!Number.isFinite(value)) {syncControls();return;}
+    stopDemo();target=Math.round(Math.max(0,Math.min(MAX_SPEED,value)));syncControls();queue();
+  }
+  slider.addEventListener('input',()=>setSpeed(+slider.value));
+  number.addEventListener('input',()=>{if(number.value!=='' && Number.isFinite(number.valueAsNumber))setSpeed(number.valueAsNumber);});
+  number.addEventListener('change',()=>setSpeed(number.valueAsNumber));
+  number.addEventListener('blur',syncControls);
+  presets.forEach(button=>button.addEventListener('click',()=>setSpeed(+button.dataset.speed)));
+  demoButton.addEventListener('click',()=>{
+    if(demo) {stopDemo();queue();return;}
+    demo=true;demoTime=0;demoOrigin=target;lastTime=0;demoButton.setAttribute('aria-pressed','true');
+    demoButton.textContent='暂停演示';status.textContent='自动演示中';queue();
+  });
+  bands.addEventListener('change',()=>{buildFace();paint();});
+  function setSize(actual) {
+    document.querySelector('#dialWrap').classList.toggle('actual',actual);
+    document.querySelector('#actualSize').setAttribute('aria-pressed',String(actual));
+    document.querySelector('#largeSize').setAttribute('aria-pressed',String(!actual));
+    document.querySelector('#sizeLabel').textContent=actual?'466 px 预览 · 小屏自适应':'放大预览';
+  }
+  document.querySelector('#actualSize').addEventListener('click',()=>setSize(true));
+  document.querySelector('#largeSize').addEventListener('click',()=>setSize(false));
+  document.querySelector('#save').addEventListener('click',()=>{
+    const output=document.createElement('canvas');output.width=output.height=SIZE;
+    output.getContext('2d').drawImage(canvas,0,0,SIZE,SIZE);
+    output.toBlob(blob=>{
+      if(!blob)return;
+      const link=document.createElement('a'),url=URL.createObjectURL(blob);
+      link.href=url;link.download=`airspeed-${Math.round(shown)}kmh-466.png`;link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    });
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){cancelAnimationFrame(frameId);frameId=0;lastTime=0;}
+    else if(demo||shown!==target)queue();
+  });
+  new ResizeObserver(resize).observe(canvas);syncControls();resize();
+})();
+</script>
+</body>
+</html>
