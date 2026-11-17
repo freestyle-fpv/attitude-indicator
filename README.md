@@ -88,6 +88,23 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 打开 <http://127.0.0.1:8766/hud.html>。视觉与交互检查记录见 [HUD 设计检查](design-qa.md)。
 
+## USB 一键安装
+
+在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/usb-installer-05c781d) 下载 `Attitude-Indicator-05c781d-USB-Installer.zip`。
+
+仅适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。解压 USB 安装包，在电脑上的 Chrome 或 Edge 打开 `Install-Attitude-Indicator.html`。用 USB 数据线连接开发板，点击「安装固件」，选中新出现的串口，按提示选择 **Install → Next → Install**。浏览器需要用户亲自选择串口。安装页内含预编译固件和 ESP Web Tools，可离线运行。
+
+重装本项目时保持 **Erase device** 未勾选，可保留安装方向和 FPS 设置。安装完成后关闭安装页，按实际方向装好开发板，让模型水平静止，再短按 PWR 校准。
+
+发布新版本时，用 Python 3.9+ 和 esbuild（本包使用 0.25.12）在已配置好的开发环境中生成安装包：
+
+```sh
+sh tools/build.sh
+python3 tools/package_installer.py --version "$(git rev-parse --short HEAD)"
+```
+
+ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
+
 ## 编译和烧录
 
 当前电脑的编译环境已经安装在项目内，可直接执行：

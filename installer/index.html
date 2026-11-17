@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>安装航模座舱仪表</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #10151d;
+      color: #e9eff8;
+    }
+    body { margin: 0; padding: 36px 18px; }
+    main {
+      max-width: 575px;
+      margin: 4vh auto 0;
+      padding: clamp(22px, 6vw, 44px);
+      border: 1px solid #303e51;
+      border-radius: 20px;
+      background: #18212d;
+      line-height: 1.7;
+    }
+    h1 { font-size: clamp(24px, 5vw, 35px); line-height: 1.2; margin: 0; }
+    p, ol { margin: 16px 0; }
+    ol { padding-inline-start: 1.4em; }
+    li + li { margin-top: 8px; }
+    .muted, details { color: #c0ccdb; }
+    .board { font-weight: 600; overflow-wrap: anywhere; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 24px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #10151d;
+      background: #8de5bb;
+    }
+    button:hover { background: #aff1d2; }
+    :focus-visible { outline: 2px solid #a0cdfa; outline-offset: 4px; }
+    details { border-top: 1px solid #303e51; margin-top: 24px; padding-top: 16px; }
+    summary { cursor: pointer; }
+    footer { color: #a6b5c8; font-size: .875rem; margin-top: 20px; }
+    a { color: #a0cdfa; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>安装航模座舱仪表</h1>
+    <p class="muted">仅适用于 <span class="board">Waveshare ESP32-S3-Touch-AMOLED-1.75</span>。</p>
+    <ol>
+      <li>在电脑上用 Chrome 或 Edge 打开本页，用 USB 数据线连接开发板。</li>
+      <li>点击下方按钮，选择新出现的 USB 串口，再依次点击 <strong>Install → Next → Install</strong>。</li>
+      <li>看到 <strong>Installation complete!</strong> 后关闭本页。装好开发板，让模型保持水平静止，再短按 PWR 校准。</li>
+    </ol>
+    <p id="loading" role="status">正在加载安装器…</p>
+    <esp-web-install-button hidden>
+      <button type="button" slot="activate">安装固件</button>
+      <span slot="unsupported">请在电脑上的 Chrome 或 Edge 打开此文件。</span>
+      <span slot="not-allowed">请把安装页解压出来，再用 Chrome 或 Edge 直接打开。</span>
+    </esp-web-install-button>
+    <noscript>请启用 JavaScript 后重新打开此页。</noscript>
+    <details>
+      <summary>首次安装与保留设置</summary>
+      <p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择 <strong>Erase device</strong> 清除旧数据。重装本项目时，保持该选项未勾选即可保留安装方向和 FPS 设置。</p>
+    </details>
+    <details>
+      <summary>没有找到串口或连接不上</summary>
+      <p>先关闭 Arduino 串口监视器等占用串口的程序，再重新插拔 USB 数据线。如果仍然连不上，让板子完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p>
+    </details>
+    <footer>固件版本 __FIRMWARE_VERSION__ · <a href="https://github.com/donne1226/attitude-indicator">项目源码</a></footer>
+  </main>
+  <script type="application/json" id="firmware">__FIRMWARE_PAYLOAD__</script>
+  <script type="module">
+    __INSTALLER_BUNDLE__
+
+    const installer = document.querySelector("esp-web-install-button");
+    const loading = document.querySelector("#loading");
+    try {
+      const firmware = JSON.parse(document.querySelector("#firmware").textContent);
+      const parts = firmware.parts.map(({data, offset}) => {
+        const bytes = Uint8Array.from(atob(data), byte => byte.charCodeAt(0));
+        const path = URL.createObjectURL(new Blob([bytes], {type: "application/octet-stream"}));
+        return {path, offset};
+      });
+      const manifest = {
+        name: "航模座舱仪表",
+        version: firmware.version,
+        new_install_prompt_erase: true,
+        new_install_improv_wait_time: 0,
+        builds: [{chipFamily: "ESP32-S3", parts}],
+      };
+      installer.manifest = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
+      installer.hidden = false;
+      loading.hidden = true;
+    } catch (error) {
+      console.error(error);
+      loading.textContent = "安装包读取失败，请重新下载并解压。";
+    }
+  </script>
+</body>
+</html>
