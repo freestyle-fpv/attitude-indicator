@@ -24,6 +24,8 @@ public:
   static constexpr unsigned RequiredSamples = 400;
 private:
   unsigned count_ = 0;
+  unsigned pending_ = 0;
   Vec3 gyroMean_{0,0,0}, accelMean_{0,0,0}, first_{0,0,0};
+  Vec3 gyroSum_{0,0,0}, accelSum_{0,0,0};
 };
 }

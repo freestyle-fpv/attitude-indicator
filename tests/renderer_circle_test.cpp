@@ -262,6 +262,75 @@ void checkConcurrent(bool wireOrder){
 }
 
 int main(){
+  // Native panel rendering must carry the fixed aircraft, lighting and
+  // attitude markings together, even though the transport stays top to bottom.
+  {
+    using namespace instrument;
+    Renderer native;
+    assert(native.begin());
+    std::vector<uint16_t> logical(Pixels),expected(Pixels),actual(Pixels);
+    for(auto side:{UsbSide::Top,UsbSide::Right,UsbSide::Bottom,UsbSide::Left}){
+      assert(native.setInstallation(UsbSide::Left));native.render(logical.data(),14,31);
+      copyPanelPixels(expected.data(),logical.data(),N,N,side,0,Pixels);
+      assert(native.setInstallation(side));native.render(actual.data(),14,31);
+      const auto window=panelRect({0,60,466,60},side);
+      std::vector<uint16_t> clipped(window.width*window.height+2,Guard);
+      native.renderBackgroundWindow(clipped.data()+1,14,31,window);
+      native.renderForegroundWindow(clipped.data()+1,14,31,window);
+      assert(clipped.front()==Guard&&clipped.back()==Guard);
+      for(int y=0;y<window.height;++y)
+        assert(std::equal(clipped.data()+1+y*window.width,clipped.data()+1+(y+1)*window.width,
+                          actual.data()+(window.y+y)*N+window.x));
+      unsigned changed=0;
+      for(int i=0;i<Pixels;++i){
+        if(actual[i]==expected[i])continue;
+        ++changed;
+        for(int shift:{0,5,11}){const int mask=shift==5?63:31;
+          assert(std::abs(int((actual[i]>>shift)&mask)-int((expected[i]>>shift)&mask))<=1);}
+      }
+      assert(changed<80);
+      // Compare repeated partial updates with a complete image, including an
+      // annulus whose horizon changes sides after the roll crosses ninety.
+      std::vector<uint16_t> restored=actual;
+      Pose previous{14,31};
+      for(Pose pose:{Pose{14.5f,33},Pose{0,0},Pose{-1,-10},Pose{45,85},Pose{89.9f,95},
+                     Pose{-90,152},Pose{-36,-126},Pose{28,-41},Pose{1,1},Pose{0,0}}){
+        RoundDamage damage(previous.pitch,previous.roll,pose.pitch,pose.roll,side);
+        int pixelsWritten=0;
+        for(int y=0;y<N;y+=28){
+          const int rows=std::min(28,N-y);
+          const auto band=circleBandBounds(y,rows);
+          const auto r=damage.window({band.x,y,band.width,rows});
+          assert((r.x|r.width)%2==0);
+          if(!r.width)continue;
+          pixelsWritten+=r.width*r.height;
+          std::vector<uint16_t> pixels(r.width*r.height);
+          native.renderBackgroundWindow(pixels.data(),pose.pitch,pose.roll,r);
+          native.renderForegroundWindow(pixels.data(),pose.pitch,pose.roll,r);
+          for(int i=0;i<r.height;++i)
+            std::copy_n(pixels.data()+i*r.width,r.width,restored.data()+(r.y+i)*N+r.x);
+        }
+        native.render(actual.data(),pose.pitch,pose.roll);
+        assert(restored==actual);
+        if(pose.pitch==0&&previous.pitch==1)assert(pixelsWritten<110000);
+        previous=pose;
+      }
+    }
+  }
+  static constexpr int firstStableRow=instrument::Renderer::StableBottomRow;
+  const int stableRows=N-firstStableRow;
+  instrument::Renderer stableRenderer;
+  assert(stableRenderer.begin());
+  std::vector<uint16_t> expectedBottom(stableRows*N),actualBottom(stableRows*N);
+  stableRenderer.renderBand(expectedBottom.data(),0,0,firstStableRow,stableRows);
+  for(float pitch:{-45.f,-32.f,0.f,32.f,45.f})for(float roll:{-44.f,-20.f,0.f,20.f,44.f}){
+    assert(instrument::Renderer::hasStableBottom(pitch,roll));
+    stableRenderer.renderBand(actualBottom.data(),pitch,roll,firstStableRow,stableRows);
+    assert(actualBottom==expectedBottom);
+  }
+  assert(!instrument::Renderer::hasStableBottom(0,90));
+  assert(!instrument::Renderer::hasStableBottom(-90,0));
+  assert(!instrument::Renderer::hasStableBottom(std::numeric_limits<float>::quiet_NaN(),0));
   const float pitches[]={-100,-90,-89.999f,-60,-1,0,1,60,89.999f,90,100};
   const float rolls[]={-180,-90,-89.999f,-.001f,0,.001f,89.999f,90,180};
   std::vector<Pose> poses;

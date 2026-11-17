@@ -3,3 +3,7 @@ Frozen HUD rasterizer before the 2026-09-10 performance work, after the shared F
 The subsequent whole-number tape readout request intentionally changes two 67×32 windows. The ongoing regression excludes only those windows; before that requested design change, all 108,578,000 pixels matched. Dedicated HUD tests cover immediate, whole-number movement and stability.
 
 A further user request adds label opacity near readout/scale edges. Those scale-label areas are now excluded too; HUD tests explicitly verify intermediate opacity and full visibility away from boundaries. The original geometry, center symbol, pitch and bank are still compared pixel-for-pixel.
+
+The FPV readability revision applies the same stroke widths and tick spacing
+to both renderers. The rasterizer and the mask for the comparison retain their
+previous behavior.

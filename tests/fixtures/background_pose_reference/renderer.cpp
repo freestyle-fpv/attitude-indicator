@@ -23,7 +23,6 @@ size_t backgroundCacheStats[5]={};
 namespace {
 const int N=466, PIXELS=N*N;
 const float C=232.5f, R=232.5f, BALL=174.0f, PI=3.14159265358979323846f;
-const uint16_t WHITE=0xffde;
 uint16_t swapBytes(uint16_t color){return static_cast<uint16_t>((color<<8)|(color>>8));}
 float clamp(float v,float lo,float hi){return v<lo?lo:(v>hi?hi:v);}
 uint16_t blend(uint16_t a,uint16_t b,float t){
@@ -62,6 +61,9 @@ struct Canvas {
     const int index=(y-firstRow)*N+x;
     if(wireOrder)f[index]=swapBytes(alpha>=1?color:blend(swapBytes(f[index]),color,alpha));
     else f[index]=alpha>=1?color:blend(f[index],color,alpha);
+  }
+  void pitchDigit(int digit,float x,float y,float cr,float sr){
+    style::paintPitchDigit(*this,digit,x,y,cr,sr,firstRow,endRow,0,N);
   }
   void line(float x1,float y1,float x2,float y2,float width,uint16_t col){
     const float half=width*.5f,padding=half+1;
@@ -108,43 +110,6 @@ struct Canvas {
     line(ax,ay,bx,by,1,color);line(bx,by,cx,cy,1,color);line(cx,cy,ax,ay,1,color);
   }
 };
-void bank(Canvas& c,float roll){
-  c.limit=R;
-  const int angles[]={-60,-45,-30,-20,-10,10,20,30,45,60};
-  for(unsigned i=0;i<sizeof(angles)/sizeof(angles[0]);++i){
-    float a=angles[i]*PI/180-roll,sa=std::sin(a),ca=std::cos(a);
-    float inner=181,outer=(std::abs(angles[i])==30||std::abs(angles[i])==60)?219:207;
-    if(std::abs(angles[i])==45){
-      float tx=C+181*sa,ty=C-181*ca;
-      c.triangle(tx,ty,C+204*sa-7*ca,C-204*ca-7*sa,C+204*sa+7*ca,C-204*ca+7*sa,WHITE);
-    }else c.line(C+inner*sa,C-inner*ca,C+outer*sa,C-outer*ca,3,WHITE);
-  }
-  float cr=std::cos(roll),sr=std::sin(roll);
-  c.triangle(C-177.5f*sr,C-177.5f*cr,
-             C-8*cr-218.5f*sr,C+8*sr-218.5f*cr,
-             C+8*cr-218.5f*sr,C-8*sr-218.5f*cr,WHITE);
-}
-void fixed(Canvas& c){style::fixed(c);}
-// Compact single-stroke numerals: quiet instrument lettering, rotated with the ball.
-const float zero[]={0.2f,0, .8f,0, 1,.2f, 1,.8f, .8f,1, .2f,1, 0,.8f, 0,.2f, .2f,0};
-const float one[]={.15f,.2f, .55f,0, .55f,1};
-const float two[]={0,.2f, .2f,0, .8f,0, 1,.2f, .9f,.4f, 0,1, 1,1};
-const float three[]={0,0, 1,0, .5f,.45f, .9f,.55f, 1,.8f, .8f,1, 0,1};
-const float four[]={.8f,1, .8f,0, 0,.7f, 1,.7f};
-const float five[]={1,0, 0,0, 0,.45f, .8f,.45f, 1,.65f, 1,.85f, .8f,1, 0,1};
-const float six[]={.9f,0, .2f,.1f, 0,.5f, 0,.8f, .2f,1, .8f,1, 1,.8f, 1,.6f, .8f,.45f, 0,.45f};
-const float seven[]={0,0, 1,0, .3f,1};
-const float eight[]={.2f,0, .8f,0, 1,.2f, .8f,.45f, .2f,.55f, 0,.8f, .2f,1, .8f,1, 1,.8f, .8f,.55f, .2f,.45f, 0,.2f, .2f,0};
-const float nine[]={1,.55f, .2f,.55f, 0,.35f, 0,.15f, .2f,0, .8f,0, 1,.2f, 1,.7f, .8f,1, .1f,1};
-void digit(Canvas& c,int d,float x,float y,float cr,float sr){
-  const float* paths[]={zero,one,two,three,four,five,six,seven,eight,nine};
-  const int sizes[]={9,3,7,7,4,8,10,3,13,10};
-  const float* p=paths[d];
-  for(int i=1;i<sizes[d];++i){
-    float x1=x+p[2*i-2]*7,y1=y+p[2*i-1]*13,x2=x+p[2*i]*7,y2=y+p[2*i+1]*13;
-    c.line(C+x1*cr+y1*sr,C-x1*sr+y1*cr,C+x2*cr+y2*sr,C-x2*sr+y2*cr,1.5f,WHITE);
-  }
-}
 // Copy complete sky/ground spans as aligned words on ESP32. Both pointers may
 // be only RGB565-aligned, so mismatched word alignment uses the portable copy.
 void copySpan(uint16_t* dst,const uint16_t* src,int count){
@@ -174,16 +139,16 @@ struct BackgroundRow {
       const uint16_t s=sky[x],g=ground[x];
       uint16_t color=e<0?s:g;
       const int32_t distance=std::abs(e);
-      if(distance<314573 && s!=g){
-        const float alpha=clamp(1.2f-distance*(1.f/262144.f),0,1)*(horizonVisibility[x]*(1.f/255.f));
-        color=wireOrder?swapBytes(blend(swapBytes(color),WHITE,alpha)):blend(color,WHITE,alpha);
+      if(distance<style::HorizonEdgeQ18 && s!=g){
+        const float alpha=clamp(style::HorizonEdge-distance*(1.f/262144.f),0,1)*(horizonVisibility[x]*(1.f/255.f));
+        color=wireOrder?swapBytes(blend(swapBytes(color),style::White,alpha)):blend(color,style::White,alpha);
       }
       frame[x]=color;
     }
   }
   void spans(int first,int end,const float* roots,int rootCount)const{
     // Up to four algebraic crossings. A three-pixel window absorbs floating
-    // point root rounding; the wider 1.5 threshold also covers Q6/Q18 error.
+    // point root rounding; the guard threshold also covers Q6/Q18 error.
     int cuts[10],low[4],high[4],count=0;
     cuts[count++]=first;cuts[count++]=end;
     int windows=0;
@@ -202,7 +167,7 @@ struct BackgroundRow {
       bool edge=false;
       for(int j=0;j<windows;++j)if(lo<high[j] && hi>low[j]){edge=true;break;}
       const int32_t e=elevation((lo+hi-1)/2);
-      if(edge || std::abs(e)<393216)shade(lo,hi);
+      if(edge || std::abs(e)<style::HorizonGuardQ18)shade(lo,hi);
       else copySpan(frame+lo,(e<0?sky:ground)+lo,hi-lo);
     }
   }
@@ -273,11 +238,11 @@ bool Renderer::begin(){
   // layer order without repeating distance tests, division or square roots.
   data_->fixedCount=0;data_->fixedPixels=nullptr;
   data_->fixedSpans=nullptr;data_->fixedColors=nullptr;data_->fixedSpanCount=0;
-  Canvas counter(nullptr,R,nullptr,&data_->fixedCount);fixed(counter);
+  Canvas counter(nullptr,R,nullptr,&data_->fixedCount);style::fixed(counter);
   data_->fixedPixels=static_cast<FixedPixel*>(allocate(data_->fixedCount*sizeof(FixedPixel)));
   if(!data_->fixedPixels){std::free(data_);data_=nullptr;return false;}
   size_t recorded=0;
-  Canvas recorder(nullptr,R,data_->fixedPixels,&recorded);fixed(recorder);
+  Canvas recorder(nullptr,R,data_->fixedPixels,&recorded);style::fixed(recorder);
   if(!data_->cacheFixed()){
     std::free(data_->fixedPixels);std::free(data_);data_=nullptr;return false;
   }
@@ -335,8 +300,8 @@ void Renderer::renderBand(uint16_t* frame,float pitch,float roll,int firstRow,in
     float roots[4];int rootCount=0;
     const float dy=y-C;
     if(std::fabs(sr)>1.e-6f){
-      roots[rootCount++]=(-1.5f-cr*dy)/sr;
-      roots[rootCount++]=(1.5f-cr*dy)/sr;
+      roots[rootCount++]=(-style::HorizonGuard-cr*dy)/sr;
+      roots[rootCount++]=(style::HorizonGuard-cr*dy)/sr;
     }
     if(row.ballEnd==0){shader.spans(row.first,row.end,roots,rootCount);continue;}
     shader.spans(row.first,row.ballFirst,roots,rootCount);
@@ -345,7 +310,7 @@ void Renderer::renderBand(uint16_t* frame,float pitch,float roll,int firstRow,in
     if(q>1.e-12f){
       const float r2=BALL*BALL-dy*dy;
       for(int sign=-1;sign<=1;sign+=2){
-        const float k=cr*cp*dy-sign*1.5f,discriminant=q*r2-k*k;
+        const float k=cr*cp*dy-sign*style::HorizonGuard,discriminant=q*r2-k*k;
         if(discriminant<0)continue;
         const float radical=std::fabs(sp)*std::sqrt(discriminant);
         // Squaring can introduce extraneous roots, which only adds a few
@@ -361,29 +326,11 @@ void Renderer::renderBand(uint16_t* frame,float pitch,float roll,int firstRow,in
   renderStages[0]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif
   Canvas c={frame,BALL-7,nullptr,nullptr,firstRow,firstRow+rowCount,wireOrder_};
-  for(int latitude=-80;latitude<=80;latitude+=5){
-    if(latitude==0)continue;
-    float angle=latitude*PI/180-pitch;
-    if(std::cos(angle)<.15f || std::fabs(angle)>40*PI/180)continue;
-    float sine=std::sin(angle);
-    bool major=latitude%10==0;
-    float half=major?(std::abs(latitude)%20==0?57:40):17;
-    float py=-std::sqrt(BALL*BALL-half*half)*sine,px=-half;
-    for(float x=-half+4;x<=half+3.9f;x+=4){
-      float next=std::fmin(x,half),y=-std::sqrt(BALL*BALL-next*next)*sine;
-      c.line(C+px*cr+py*sr,C-px*sr+py*cr,C+next*cr+y*sr,C-next*sr+y*cr,major?2:1.6f,WHITE);px=next;py=y;
-    }
-    if(major){
-      float yy=-std::sqrt(BALL*BALL-(half+17)*(half+17))*sine-6.5f;
-      int num=std::abs(latitude);
-      digit(c,num/10,-half-25,yy,cr,sr);digit(c,0,-half-15,yy,cr,sr);
-      digit(c,num/10,half+9,yy,cr,sr);digit(c,0,half+19,yy,cr,sr);
-    }
-  }
+  style::ladder(c,pitch,cr,sr);
 #if defined(ARDUINO_ARCH_ESP32)
   renderStages[1]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif
-  bank(c,roll);
+  style::bank(c,roll);
 #if defined(ARDUINO_ARCH_ESP32)
   renderStages[2]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif

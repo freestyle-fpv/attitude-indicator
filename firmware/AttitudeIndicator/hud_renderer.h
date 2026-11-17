@@ -1,5 +1,6 @@
 #pragma once
 #include "altimeter_renderer.h"
+#include "installation.h"
 #include <cstdint>
 namespace instrument {
 struct HudInput {
@@ -16,7 +17,9 @@ class HudRenderer {
   bool begin();
   // Prepare once on the producer. A slot remains immutable until DMA returns it.
   bool prepareFrame(unsigned slot,const HudInput& input);
+  bool prepareFrame(unsigned slot,const HudInput& input,UsbSide side,bool showFps);
   void renderPrepared(uint16_t* pixels,unsigned slot,AirspeedRect rect) const;
+  void renderPreparedPanel(uint16_t* pixels,unsigned slot,AirspeedRect rect,UsbSide side) const;
   void render(uint16_t* pixels,const HudInput& input);
   static AltimeterDamage damage();
   AltimeterDamage damagePrepared(unsigned slot) const;

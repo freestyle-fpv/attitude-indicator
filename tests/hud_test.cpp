@@ -23,15 +23,16 @@ int main(){
 
   }
   HudRenderer r(false),wire(true);assert(r.begin()&&wire.begin());
-  HudInput p;std::vector<uint16_t> full(466*466),w(full.size()),rebuilt(full.size());
+  HudInput p;p.pitch=10;std::vector<uint16_t> full(466*466),w(full.size()),rebuilt(full.size());
   r.render(full.data(),p);wire.render(w.data(),p);
   unsigned lit=0;for(size_t i=0;i<full.size();++i){assert(w[i]==uint16_t((full[i]<<8)|(full[i]>>8)));if(full[i])++lit;}
   assert(lit>1500&&lit<30000);assert(full[0]==0&&full.back()==0);
-  // 0 and 10 degrees have identical long-line geometry; the intervening
-  // 5-degree mark is shorter. All rows have a continuous center and labels.
-  for(int x=153;x<=313;++x){assert(full[174*466+x]!=0);assert(full[294*466+x]!=0);}
-  assert(full[234*466+182]==0&&full[234*466+187]!=0);
-  assert(full[177*466+153]!=0&&full[177*466+313]!=0);
+  // Major rows at 0 and 20 degrees are continuous and thicker than the
+  // shorter 10-degree row. There is no intervening five-degree mark.
+  for(int x=157;x<=309;++x){assert(full[153*466+x]!=0);assert(full[313*466+x]!=0);}
+  assert(full[234*466+184]==0&&full[233*466+190]!=0);
+  assert(full[194*466+270]==0&&full[274*466+270]==0);
+  assert(full[158*466+157]!=0&&full[158*466+309]!=0);
   unsigned shortLabelPixels=0;for(int y=223;y<245;++y)for(int x=167;x<183;++x)shortLabelPixels+=full[y*466+x]!=0;
   assert(shortLabelPixels>20);
   // Outer and inner center rings over the continuous pitch line.
@@ -60,6 +61,41 @@ int main(){
     for(int i=0;i<spans.count;++i){const auto a=spans.regions[i];
       if(a.y<writtenBottom){std::fprintf(stderr,"scan backtracks at pitch %.2f: row %d after %d\n",tilted.pitch,a.y,writtenBottom);assert(false);}
       writtenBottom=a.y+a.height;
+    }
+  }
+  // Rotated dirty windows still reconstruct the whole image in physical scan
+  // order. A logical top-to-bottom list would backtrack after a quarter turn.
+  for(auto side:{UsbSide::Top,UsbSide::Right,UsbSide::Bottom}){
+    HudRenderer rotated;assert(rotated.begin());
+    HudInput input;
+    assert(rotated.prepareFrame(0,input,side,false));
+    rotated.renderPrepared(full.data(),0,{0,0,466,466});
+    copyPanelPixels(rebuilt.data(),full.data(),466,466,side,0,466*466);
+    assert(rotated.prepareFrame(1,input,side,false));
+    assert(rotated.damagePrepared(1).count==0);
+    for(int step=0;step<36;++step){
+      input.roll=35+step*.7f;input.pitch=-12+step*.83f;
+      input.heading=311+step*2;input.speedKmh=70+step;input.altitudeM=300-step*2;
+      assert(rotated.prepareFrame(0,input,side,false));
+      const auto damage=rotated.damagePrepared(0);
+      int bottom=0;
+      for(int i=0;i<damage.count;++i){
+        const auto panel=damage.regions[i],logical=panelRect(panel,inverse(side));
+        assert(panel.y>=bottom && ((panel.x|panel.y|panel.width|panel.height)&1)==0);
+        assert(panel.width*panel.height<=13980);bottom=panel.y+panel.height;
+        std::vector<uint16_t> patch(panel.width*panel.height),wirePatch(patch.size());
+        rotated.renderPrepared(patch.data(),0,logical);
+        copyPanelPixels(wirePatch.data(),patch.data(),logical.width,logical.height,side,0,patch.size());
+        std::vector<uint16_t> direct(patch.size()+2,0xABCD);
+        rotated.renderPreparedPanel(direct.data()+1,0,panel,side);
+        assert(direct.front()==0xABCD&&direct.back()==0xABCD);
+        assert(std::equal(wirePatch.begin(),wirePatch.end(),direct.begin()+1));
+        for(int y=0;y<panel.height;++y)
+          std::memcpy(&rebuilt[(panel.y+y)*466+panel.x],wirePatch.data()+y*panel.width,panel.width*2);
+      }
+      rotated.renderPrepared(full.data(),0,{0,0,466,466});
+      copyPanelPixels(w.data(),full.data(),466,466,side,0,466*466);
+      assert(rebuilt==w);
     }
   }
   // Identical poses only need the shared FPS overlay, not the full HUD bands.
@@ -105,15 +141,15 @@ int main(){
   p.roll=90;r.render(w.data(),p);assert(full!=w);
   // A complete pitch label near the top boundary stays bright. Once it no
   // longer fits, remove the whole label instead of dimming/clipping digits.
-  HudInput edge;edge.pitch=10-109.f/12;edge.roll=0;r.render(full.data(),edge);
+  HudInput edge;edge.pitch=20-109.f/8;edge.roll=0;r.render(full.data(),edge);
   unsigned edgePeak=0;
   for(int y=114;y<149;++y)for(int x=126;x<151;++x)edgePeak=std::max(edgePeak,unsigned((full[y*466+x]>>5)&63));
   assert(edgePeak>=62);
-  edge.pitch=10-114.f/12;r.render(full.data(),edge);
+  edge.pitch=20-114.f/8;r.render(full.data(),edge);
   for(int y=114;y<149;++y)for(int x=126;x<151;++x)assert(full[y*466+x]==0);
-  edge.pitch=-5;r.render(full.data(),edge);
-  assert(full[294*466+233]!=0&&full[294*466+240]==0&&full[294*466+245]!=0);
-  assert(full[291*466+153]!=0&&full[291*466+313]!=0);
+  edge.pitch=-10;r.render(full.data(),edge);
+  assert(full[314*466+224]!=0&&full[314*466+233]==0&&full[314*466+242]!=0);
+  assert(full[309*466+157]!=0&&full[309*466+309]!=0);
   // HUD regions have exactly one worker owner, including the bottom scale.
   // Reconstruct a frame with the actual two-worker assignment.
   HudInput parallel;assert(r.prepareFrame(2,parallel));r.renderPrepared(full.data(),2,{0,0,466,466});

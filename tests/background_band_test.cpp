@@ -69,7 +69,8 @@ int main(){
   assert(padded==parts);
   overlay.blitBand(nullptr,n,0,80);
   std::fill(guarded.begin(),guarded.end(),0x1234);
-  overlay.blitBand(guarded.data()+1,405,0,466);
+  // A narrow band can overlap the overlay; this one ends just before it.
+  overlay.blitBand(guarded.data()+1,overlay.X,0,466);
   overlay.blitBand(guarded.data()+1,n,-1,466);
   overlay.blitBand(guarded.data()+1,n,0,0);
   overlay.blitBand(guarded.data()+1,n,INT_MAX,INT_MAX);

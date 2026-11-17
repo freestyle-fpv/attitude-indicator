@@ -21,7 +21,7 @@ class CalibrationButton {
 // snapshot cannot prematurely end the modal while the sampler receives it.
 class CalibrationSession {
  public:
-  uint32_t request(){if(active_)return 0;if(++id_==0)++id_;active_=true;return id_;}
+  uint32_t request(bool restart=false){if(active_&&!restart)return 0;if(++id_==0)++id_;active_=true;return id_;}
   bool observe(uint32_t id,bool calibrated){if(!active_||id!=id_||!calibrated)return false;active_=false;return true;}
   bool active()const{return active_;}
  private:

@@ -21,7 +21,7 @@ struct Clip {float l=0,t=0,r=466,b=466;};
 Clip area(float l,float t,float r,float b){Clip c;c.l=l;c.t=t;c.r=r;c.b=b;return c;}
 struct Command {
   enum Kind {Line,Ring,Text,Window} kind=Line;
-  float x=0,y=0,x2=0,y2=0,size=1.15f,weight=0,cs=1,sn=0;
+  float x=0,y=0,x2=0,y2=0,size=1.15f,cs=1,sn=0;
   Clip clip;
   uint8_t green=198;
   bool fade=false,shade=false;
@@ -42,11 +42,11 @@ struct Builder {
     c=Command();c.kind=kind;c.clip=clip;c.fade=fade;c.shade=shade;return c;
   }
   void line(float x,float y,float xx,float yy,float width=1.5f,int green=198){auto& c=add(Command::Line);c.x=x;c.y=y;c.x2=xx;c.y2=yy;c.size=width;c.green=green;}
-  void ring(float x,float y,float radius){auto& c=add(Command::Ring);c.x=x;c.y=y;c.x2=radius;c.size=1.6f;c.green=255;}
-  void text(const char* value,float x,float y,float size,int green=198,float weight=0,float angle=0){auto& c=add(Command::Text);c.x=x;c.y=y;c.size=size;c.green=green;c.weight=weight;c.cs=std::cos(angle);c.sn=std::sin(angle);std::snprintf(c.str,sizeof(c.str),"%s",value);}
-  void number(int value,float x,float y,float size=11,int green=198,float weight=0,float angle=0,bool sign=false){char s[16];std::snprintf(s,sizeof(s),sign&&value>0?"+%d":"%d",value);text(s,x,y,size,green,weight,angle);}
-  void tick(float x,float y,float dx,float dy,bool major,bool bright=false,float amount=0){float len=major?17:9;line(x,y,x+dx*len,y+dy*len,1.5f+1.7f*amount,bright?255:int((major?198:140)+(255-(major?198:140))*amount));}
-  void triangle(float x,float y,float dx,float dy){float bx=x-dx*12,by=y-dy*12;line(x,y,bx-dy*6,by+dx*6,1.6f,255);line(bx-dy*6,by+dx*6,bx+dy*6,by-dx*6,1.6f,255);line(bx+dy*6,by-dx*6,x,y,1.6f,255);}
+  void ring(float x,float y,float radius){auto& c=add(Command::Ring);c.x=x;c.y=y;c.x2=radius;c.size=3.f;c.green=255;}
+  void text(const char* value,float x,float y,float size,int green=198,float angle=0){auto& c=add(Command::Text);c.x=x;c.y=y;c.size=size;c.green=green;c.cs=std::cos(angle);c.sn=std::sin(angle);std::snprintf(c.str,sizeof(c.str),"%s",value);}
+  void number(int value,float x,float y,float size=11,int green=198,float angle=0,bool sign=false){char s[16];std::snprintf(s,sizeof(s),sign&&value>0?"+%d":"%d",value);text(s,x,y,size,green,angle);}
+  void tick(float x,float y,float dx,float dy,bool major,bool bright=false,float amount=0){const float len=major?17:9,width=major?3.4f:2.5f;const int green=major?224:180;line(x,y,x+dx*len,y+dy*len,width+1.3f*amount,bright?255:int(green+(255-green)*amount));}
+  void triangle(float x,float y,float dx,float dy){float bx=x-dx*12,by=y-dy*12;line(x,y,bx-dy*6,by+dx*6,3.2f,255);line(bx-dy*6,by+dx*6,bx+dy*6,by-dx*6,3.2f,255);line(bx+dy*6,by-dx*6,x,y,3.2f,255);}
 };
 // Matches the HTML footprint, including the largest bold endpoint label.
 constexpr float Half=104.f,LabelGap=23.f;
@@ -58,15 +58,15 @@ void counter(Builder& b,Wheel& c,float x,float y,int digits){
   int direction=c.to>=c.from?1:-1;
   b.clip=area(x-33,y-16,x+33,y+16);b.shade=true;
   for(int i=0;i<digits;++i){float dx=x+(i-(digits-1)*.5f)*15.6f;char s[2]={next[i],0};
-    if(old[i]==next[i]||t>=1)b.text(s,dx,y,26,255,.4f);
-    else {s[0]=old[i];b.text(s,dx,y-direction*p*34,26,255,.4f);s[0]=next[i];b.text(s,dx,y+direction*(1-p)*34,26,255,.4f);}
+    if(old[i]==next[i]||t>=1)b.text(s,dx,y,26,255);
+    else {s[0]=old[i];b.text(s,dx,y-direction*p*34,26,255);s[0]=next[i];b.text(s,dx,y+direction*(1-p)*34,26,255);}
   }
   b.clip=Clip();b.shade=false;
 }
 void tape(Builder& b,Wheel& wheel,bool left,float value,float pitch){
-  float x=left?85:381,sign=left?-1:1,minor=5,max=left?200:3000;
-  float scale=pitch/minor;
-  b.line(x+sign*34,122,x,122);b.line(x,122,x,346);b.line(x,346,x+sign*34,346);
+  float x=left?85:381,sign=left?-1:1,minor=10,max=left?200:3000;
+  float scale=pitch/5;
+  b.line(x+sign*34,122,x,122,2.6f);b.line(x,122,x,346,2.6f);b.line(x,346,x+sign*34,346,2.6f);
   const int lo=std::max(0,int(std::ceil((value-(346-234)/scale)/minor))*int(minor));
   for(int v=lo;v<=std::min(max,value+(234-122)/scale);v+=int(minor)){
     float y=234-(v-value)*scale;bool major=v%20==0;
@@ -76,31 +76,31 @@ void tape(Builder& b,Wheel& wheel,bool left,float value,float pitch){
       char s[12];std::snprintf(s,sizeof(s),"%d",v);float half=std::strlen(s)*hudfont::Advance*18/hudfont::Size/2;
       const float center=x+sign*(22+half),farX=std::fabs(center-233)+half+2,farY=std::fabs(y-233)+13;
       // Keep the complete larger label within the circular screen.
-      if(farX*farX+farY*farY<231*231)b.text(s,center,y,18,255,.35f);
+      if(farX*farX+farY*farY<231*231)b.text(s,center,y,18,255);
     }
   }
   const float inner=x+sign*9,outer=inner+sign*72;
   auto& c=b.add(Command::Window);c.x=x;c.y=234;c.x2=outer;c.y2=sign;
   const float px[]={x,inner,outer-sign*2,outer,outer,outer-sign*2,inner,x};
   const float py[]={234,214,214,216,252,254,254,234};
-  for(int i=0;i<7;++i)b.line(px[i],py[i],px[i+1],py[i+1],1.6f,255);
+  for(int i=0;i<7;++i)b.line(px[i],py[i],px[i+1],py[i+1],3.2f,255);
   counter(b,wheel,(inner+outer)/2,234,left?3:4);
-  b.text(left?"KM/H":"M",x+sign*17,104,14,255,.25f);
+  b.text(left?"KM/H":"M",x+sign*17,104,14,255);
 }
 void heading(Builder& b,float raw,float pitch){
   float spacing=pitch/5,labelHalf=Half-24,extent=Half/spacing;
-  for(int v=int(std::floor((raw-extent)/5))*5;v<=raw+extent;v+=5){
+  for(int v=int(std::floor((raw-extent)/10))*10;v<=raw+extent;v+=10){
     float x=233+(v-raw)*spacing;if(x<233-Half+1||x>233+Half-1)continue;
-    int degrees=int(wrap(float(v)));bool card=degrees%90==0,major=degrees%20==0||card;b.tick(x,72,0,-1,major,card,emphasis(v-raw,5));
+    int degrees=int(wrap(float(v)));bool card=degrees%90==0,major=degrees%20==0||card;b.tick(x,72,0,-1,major,card,emphasis(v-raw,10));
     if(major&&(card||(degrees%90!=10&&degrees%90!=80))){char label[8];if(card){label[0]=cardinal(degrees);label[1]=0;}else std::snprintf(label,sizeof(label),"%d",degrees);
       float amount=emphasis(v-raw,20),base=20,size=base+(22-base)*amount;
       float half=std::strlen(label)*hudfont::Advance*size/hudfont::Size/2;
-      if(x-half>=233-labelHalf&&x+half<=233+labelHalf)b.text(label,x,44,size,255,.35f+.65f*amount);
+      if(x-half>=233-labelHalf&&x+half<=233+labelHalf)b.text(label,x,44,size,int(236+19*amount));
     }
   }
   char s[2]={cardinal(std::floor((raw-labelHalf/spacing)/90)*90),0};
-  b.text(s,233-Half+hudfont::Advance*20/hudfont::Size/2,44,20,255,.35f);
-  s[0]=cardinal(std::ceil((raw+labelHalf/spacing)/90)*90);b.text(s,233+Half-hudfont::Advance*20/hudfont::Size/2,44,20,255,.35f);
+  b.text(s,233-Half+hudfont::Advance*20/hudfont::Size/2,44,20,255);
+  s[0]=cardinal(std::ceil((raw+labelHalf/spacing)/90)*90);b.text(s,233+Half-hudfont::Advance*20/hudfont::Size/2,44,20,255);
   b.triangle(233,77,0,-1);
 }
 // Tight bitmap ink bounds, including bilinear sampling support. Precomputed;
@@ -120,26 +120,32 @@ bool textFits(const char* s,float x,float y,float size,float cs,float sn,const C
 void ladder(Builder& b,float pitch,float roll){
   const float angle=-roll*Pi/180,cs=std::cos(angle),sn=std::sin(angle);
   b.clip=area(102,114,364,350);b.fade=true;
-  auto line=[&](float x,float y,float xx,float yy,int green){b.line(233+cs*x-sn*y,234+sn*x+cs*y,233+cs*xx-sn*yy,234+sn*xx+cs*yy,1.5f,green);};
-  for(int p=-90;p<=90;p+=5){float y=(pitch-p)*12;if(std::fabs(y)>260)continue;
-    const bool major=p%10==0;const float half=major?80:48;int green=p==0?255:198;
-    if(p>=0)line(-half,y,half,y,green);
-    else for(float x=-4-13*std::ceil(half/13);x<half;x+=13){const float a=std::max(-half,x),z=std::min(half,x+8);if(z>a)line(a,y,z,y,green);}
+  auto line=[&](float x,float y,float xx,float yy,float width,int green){
+    b.line(233+cs*x-sn*y,234+sn*x+cs*y,233+cs*xx-sn*yy,234+sn*xx+cs*yy,width,green);
+  };
+  for(int p=-90;p<=90;p+=10){
+    const float y=(pitch-p)*8;
+    if(std::fabs(y)>260)continue;
+    const bool major=p%20==0;
+    const float half=major?76.f:46.f,width=p==0?5.f:(major?4.f:3.2f);
+    const int green=p==0?255:236;
+    if(p>=0)line(-half,y,half,y,width,green);
+    else for(float x=-half;x<half;x+=20)line(x,y,std::min(half,x+12),y,width,green);
     const float hook=p<0?-6:6;
-    line(-half,y,-half,y+hook,green);line(half,y,half,y+hook,green);
+    line(-half,y,-half,y+hook,width,green);line(half,y,half,y+hook,width,green);
     for(int side:{-1,1}){
       char s[8];std::snprintf(s,sizeof(s),"%d",p);float width=std::strlen(s)*hudfont::Advance*20/hudfont::Size;
-      float x=side*(half+4+width/2),sx=233+cs*x-sn*y,sy=234+sn*x+cs*y;
-      if(textFits(s,sx,sy,20,cs,sn,b.clip)){b.fade=false;b.text(s,sx,sy,20,255,.35f,angle);b.fade=true;}
+      float x=side*(half+5+width/2),sx=233+cs*x-sn*y,sy=234+sn*x+cs*y;
+      if(textFits(s,sx,sy,20,cs,sn,b.clip)){b.fade=false;b.text(s,sx,sy,20,255,angle);b.fade=true;}
     }
   }
   b.clip=Clip();b.fade=false;
 }
 void bank(Builder& b,float roll,bool valid,float r){
   float cy=420-r;
-  for(int v=-60;v<=60;v+=10){float a=v*Pi/180,s=std::sin(a),c=std::cos(a);bool major=v%30==0;
-    b.tick(233+s*r,cy+c*r,-s,-c,major,false,valid?emphasis(v-roll,10):0);
-    if(major){float amt=valid?emphasis(v-roll,30):0;b.number(v,233+s*(r+LabelGap),cy+c*(r+LabelGap),20+2*amt,255,.35f+.65f*amt,0,true);}
+  for(int v=-60;v<=60;v+=15){float a=v*Pi/180,s=std::sin(a),c=std::cos(a);bool major=v%30==0;
+    b.tick(233+s*r,cy+c*r,-s,-c,major,false,valid?emphasis(v-roll,15):0);
+    if(major){float amt=valid?emphasis(v-roll,30):0;b.number(v,233+s*(r+LabelGap),cy+c*(r+LabelGap),20+2*amt,int(236+19*amt),0,true);}
   }
   if(valid){float a=roll*Pi/180,s=std::sin(a),c=std::cos(a);b.triangle(233+s*(r-25),cy+c*(r-25),s,c);}
 }
@@ -196,7 +202,7 @@ struct Raster {
       int x0=std::max(rect.x,int(std::floor(std::max(l,c.clip.l)))),x1=std::min(rect.x+rect.width-1,int(std::ceil(std::min(r,c.clip.r))));
       int y0=std::max(rect.y,int(std::floor(std::max(t,c.clip.t)))),y1=std::min(rect.y+rect.height-1,int(std::ceil(std::min(b,c.clip.b))));
       for(int y=y0;y<=y1;++y)for(int x=x0;x<=x1;++x){float dx=x-c.x,dy=y-c.y,u=(c.cs*dx+c.sn*dy-left)*inverseScale,v=(-c.sn*dx+c.cs*dy-top)*inverseScale;
-        float alpha=0;if(c.weight<1)alpha+=sample(hudfont::glyphs[0][index],u,v)*(1-c.weight);if(c.weight>0)alpha+=sample(hudfont::glyphs[1][index],u,v)*c.weight;
+        float alpha=sample(hudfont::glyphs()[index],u,v);
         if(alpha>0)plot(x,y,c.green,alpha*(1.f/255.f),c);
       }
     }
@@ -235,7 +241,7 @@ bool HudRenderer::prepareFrame(unsigned slot,const HudInput& input){
   const float trueRoll=std::remainder(safe(input.roll),360.f);
   float roll=bound(trueRoll,-60,60);
   if(valid)ladder(b,bound(input.pitch,-90,90),trueRoll);else b.text("IMU",233,280,12,255);
-  b.ring(233,234,14.f);b.ring(233,234,7.5f);b.line(195,234,219,234,1.6f,255);b.line(247,234,271,234,1.6f,255);b.line(233,220,233,206,1.6f,255);
+  b.ring(233,234,14.f);b.ring(233,234,7.5f);b.line(195,234,219,234,3.2f,255);b.line(247,234,271,234,3.2f,255);b.line(233,220,233,206,3.2f,255);
   bank(b,roll,valid,r);
   char s[12];std::snprintf(s,sizeof(s),"%+.1f",bound(safe(input.climb),-15,15));b.text(s,398,368,14);b.text("V/S",398,382,12);
   list.valid=list.count<Capacity;return list.valid;

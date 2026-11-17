@@ -1,9 +1,9 @@
 #pragma once
 #include "panel_display.h"
+#include "installation.h"
 #include <driver/spi_master.h>
 #include <hal/spi_ll.h>
 namespace instrument {
-struct AirspeedRect;
 class FastPanel {
  public:
   bool begin();
@@ -11,15 +11,16 @@ class FastPanel {
   // Pixels are already compacted to circleBandBounds() in panel byte order.
   // The caller retains exclusive ownership until all DMA completes.
   void presentBand(PanelDisplay& display,uint16_t* pixels,int firstRow,int rows);
-  // Copy packed PSRAM pixels into two alternating internal DMA chunks.
-  void presentRect(PanelDisplay& display,const uint16_t* pixels,int x,int y,int width,int height,uint16_t* scratch,size_t scratchPixels);
+  // Copy packed PSRAM pixels into two alternating internal DMA chunks. A null
+  // scratch is allowed for panel-order pixels already in internal DMA memory.
+  void presentRect(PanelDisplay& display,const uint16_t* pixels,int x,int y,int width,int height,uint16_t* scratch,size_t scratchPixels,UsbSide side=UsbSide::Left);
   void presentRegions(PanelDisplay&,const uint16_t*,const AirspeedRect*,int,uint16_t*,size_t);
   void enableTearingSignal();
   struct RegionTiming { volatile uint32_t began=0,ended=0; };
   const RegionTiming& regionTiming(unsigned i)const{return regionTiming_[i];}
   uint32_t setupMicros() const{return setupUs_;}
  private:
-  void presentWindow(PanelDisplay&,const uint16_t*,int,int,int,int,uint16_t*,size_t);
+  void presentWindow(PanelDisplay&,const uint16_t*,int,int,int,int,uint16_t*,size_t,UsbSide side=UsbSide::Left);
   void command(uint8_t code,const uint8_t* data,size_t bytes);
   static void beginQueuedTransaction(spi_transaction_t*);
   static void endQueuedTransaction(spi_transaction_t*);

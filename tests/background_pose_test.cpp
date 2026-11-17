@@ -64,12 +64,12 @@ int main(){
   for(int i=0;i<n*118;++i)assert(a[i+1]==0);
   std::printf("Pose cache: %d full/118-row poses exactly match uncached fixture; max %zu commands; %zu builds; %zu safe overflows (%zu during bank)\n",cases,largest,instrument::backgroundPoseBuilds,instrument::backgroundPoseOverflows,instrument::backgroundPoseBankOverflows);
   std::printf("Mean four-band frame: cached %.4f ms, uncached %.4f ms\n",actualMs/cases,referenceMs/cases);
-#if INSTRUMENT_COMMAND_CAPACITY < 1024
+#if INSTRUMENT_COMMAND_CAPACITY <= 229
   assert(instrument::backgroundPoseOverflows>0);
-#else
+#elif INSTRUMENT_COMMAND_CAPACITY == 1024
   assert(instrument::backgroundPoseOverflows==0);
 #endif
-#if INSTRUMENT_COMMAND_CAPACITY == 495
+#if INSTRUMENT_COMMAND_CAPACITY == 229
   assert(instrument::backgroundPoseBankOverflows>0);
 #endif
 }

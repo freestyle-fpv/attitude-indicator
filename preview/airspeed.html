@@ -34,12 +34,24 @@
   </div>
   <footer class="footer"><span id="motionState" role="status">手动预览</span><span>0–200 km/h · 单针表盘</span><button type="button" class="save" id="save">保存表盘 PNG</button></footer>
 </main>
+<script src="dial_font.js"></script>
 <script>
 'use strict';
 (() => {
   const SIZE = 466, CENTER = 233, MAX_SPEED = 200, CREAM = '#fffbd0';
   const canvas = document.querySelector('#dial'), ctx = canvas.getContext('2d');
   const face = document.createElement('canvas'), faceCtx = face.getContext('2d');
+  const dialGlyphs = new Map(DIAL_FONT.glyphs.map(([code, first, count, advance]) => {
+    const path = new Path2D();
+    let endX, endY;
+    for (let i = first; i < first + count; ++i) {
+      const [x1, y1, x2, y2] = DIAL_FONT.edges[i];
+      if (x1 !== endX || y1 !== endY) path.moveTo(x1, y1);
+      path.lineTo(x2, y2);
+      endX = x2; endY = y2;
+    }
+    return [String.fromCharCode(code), {path, advance}];
+  }));
   const slider = document.querySelector('#speed'), number = document.querySelector('#speedNumber');
   const demoButton = document.querySelector('#demo'), bands = document.querySelector('#bands');
   const status = document.querySelector('#motionState');
@@ -64,6 +76,20 @@
     faceCtx.beginPath(); faceCtx.arc(CENTER,CENTER,233-width/2,angle(start)-Math.PI/2,angle(end)-Math.PI/2);
     faceCtx.lineWidth=width; faceCtx.lineCap='butt'; faceCtx.strokeStyle=color; faceCtx.stroke();
   }
+  function lettering(text, x, y, size) {
+    const glyphs = [...text].map(character => dialGlyphs.get(character)).filter(Boolean);
+    const scale = size / 1000;
+    const advance = glyphs.reduce((sum, glyph) => sum + glyph.advance, 0);
+    faceCtx.save();
+    faceCtx.translate(x - advance * scale / 2, y + size * .36);
+    faceCtx.scale(scale, -scale);
+    faceCtx.fillStyle = CREAM;
+    for (const glyph of glyphs) {
+      faceCtx.fill(glyph.path, 'evenodd');
+      faceCtx.translate(glyph.advance, 0);
+    }
+    faceCtx.restore();
+  }
   function buildFace() {
     face.width = face.height = Math.round(SIZE * density);
     faceCtx.setTransform(density,0,0,density,0,0);
@@ -78,14 +104,11 @@
       line(faceCtx,...outer,...inner,major?6:3.6,CREAM);
       if(major) {
         const label = point(148,a);
-        faceCtx.fillStyle=CREAM; faceCtx.font='700 34px Arial, Helvetica, sans-serif';
-        faceCtx.textAlign='center'; faceCtx.textBaseline='middle';
-        faceCtx.fillText(String(speed),label[0],label[1]+2);
+        lettering(String(speed), label[0], label[1] + 2, 34);
       }
     }
-    faceCtx.textAlign='center'; faceCtx.textBaseline='middle'; faceCtx.fillStyle=CREAM;
-    faceCtx.font='700 21px Arial, Helvetica, sans-serif'; faceCtx.fillText('AIR SPEED',CENTER,177);
-    faceCtx.font='600 20px Arial, Helvetica, sans-serif'; faceCtx.fillText('km/h',CENTER,317);
+    lettering('AIR SPEED', CENTER, 177, 21);
+    lettering('km/h', CENTER, 317, 20);
   }
   function drawNeedle(context) {
     context.save(); context.translate(CENTER,CENTER); context.rotate(angle(shown));

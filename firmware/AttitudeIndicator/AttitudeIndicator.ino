@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <Preferences.h>
 #include <Arduino_GFX_Library.h>
 #include <SensorQMI8658.hpp>
 #define XPOWERS_CHIP_AXP2101
@@ -23,10 +24,13 @@
 #include "instrument_controls.h"
 #include "touch_gesture.h"
 #include "calibration_controls.h"
+#include "instrument_settings.h"
 
 namespace instrument { extern uint32_t renderStages[4]; }
 using instrument::Vec3;
 using board::SampleResult;
+using instrument::UsbSide;
+using instrument::SettingsPage;
 
 
 Arduino_ESP32QSPI displayBus(board::LcdCs,board::LcdClock,board::LcdD0,
@@ -45,7 +49,17 @@ instrument::DisplayPipeline displayPipeline;
 instrument::FpsOverlay fpsOverlay(true);
 uint16_t* frames[instrument::DisplayBufferCount]={};
 QueueHandle_t snapshots=nullptr,commands=nullptr;
-QueueHandle_t swipes=nullptr;
+struct CalibrationRequest {uint32_t id;UsbSide side;};
+struct TouchAction {uint32_t context;int16_t x,y;int8_t direction;};
+QueueHandle_t touchActions=nullptr;
+instrument::SettingsMenu settingsMenu;
+Preferences preferences;
+bool preferencesReady=false;
+UsbSide initialSide=UsbSide::Left,requestedImuSide=UsbSide::Left;
+// Low bits hold the orientation and whether tap mode is active. The counter
+// identifies the page so an already queued gesture cannot affect a later page.
+std::atomic<uint32_t> touchContext{0};
+std::atomic<bool> menuClick{false};
 std::atomic<bool> touchPending{false};
 std::atomic<uint32_t> touchPackets{0},touchErrors{0},touchPosition{0},swipeCount{0};
 bool touchReady=false,powerButtonReady=false;
@@ -65,7 +79,7 @@ void initializePowerButton(){
   uint8_t config=0,polarity=0;
   powerButtonReady=expanderRead(3,config)&&expanderRead(2,polarity)&&
     expanderWrite(3,config|board::PowerButtonMask)&&expanderWrite(2,polarity&~board::PowerButtonMask);
-  Serial.printf("PWR calibration button EXIO4: %s; BOOT runtime actions disabled\n",powerButtonReady?"ready":"unavailable");
+  Serial.printf("PWR calibration button EXIO4: %s; BOOT click opens settings\n",powerButtonReady?"ready":"unavailable");
 }
 // After setup only samplingTask touches I2C. Detect clicks here at 100 Hz,
 // independently of render rate, then hand the action to the UI thread.
@@ -95,8 +109,15 @@ void initializeTouch(){
 // Only the sampling task accesses I2C after setup, including touch reports.
 void pollTouch(uint32_t now){
   static instrument::VerticalSwipe gesture;
-  static uint32_t last=0,retry=0;static bool contact=false;
+  static instrument::TouchTap tap;
+  static uint32_t seenContext=0;
+  static uint32_t last=0,retry=0;static bool contact=false,awaitRelease=false;
   if(uint32_t(now-last)<20)return;last=now;
+  const uint32_t context=touchContext.load();
+  if(context!=seenContext){
+    if(contact){gesture.cancel();tap.cancel();awaitRelease=true;}
+    seenContext=context;
+  }
   if(!touchReady){if(uint32_t(now-retry)<1000)return;retry=now;touchReady=probeTouch();if(!touchReady)return;touchPending.store(true);}
   const bool pending=touchPending.exchange(false,std::memory_order_relaxed);
   if(!pending&&!contact&&digitalRead(board::TouchInterrupt)!=LOW)return;
@@ -106,13 +127,25 @@ void pollTouch(uint32_t now){
   if(ok){if(Wire.requestFrom(board::TouchAddress,sizeof(bytes),true)!=sizeof(bytes))ok=false;
     else for(auto& b:bytes)b=Wire.read();}
   if(ok){Wire.beginTransmission(board::TouchAddress);Wire.write(0xD0);Wire.write(0);Wire.write(0xAB);ok=Wire.endTransmission()==0;}
-  if(!ok){touchErrors.fetch_add(1);touchReady=false;retry=now;contact=false;gesture.cancel();return;}
+  if(!ok){touchErrors.fetch_add(1);touchReady=false;retry=now;contact=false;gesture.cancel();tap.cancel();return;}
   instrument::TouchReport report;
-  if(!instrument::decodeTouch(bytes,sizeof(bytes),report)){gesture.cancel();contact=false;return;}
+  if(!instrument::decodeTouch(bytes,sizeof(bytes),report)){gesture.cancel();tap.cancel();contact=false;return;}
+  if(report.contacts==1){const auto p=board::touchPoint(report.x,report.y,UsbSide(context&3));report.x=p.x;report.y=p.y;}
   touchPackets.fetch_add(1,std::memory_order_relaxed);contact=report.contacts!=0;
   touchPosition.store((uint32_t(report.contacts)<<18)|(uint32_t(report.x)<<9)|uint32_t(report.y),std::memory_order_relaxed);
-  const int8_t direction=gesture.update(report,now);
-  if(direction)xQueueSend(swipes,&direction,0);
+  if(awaitRelease && contact)return;
+  awaitRelease=false;
+  if(context&4u){
+    gesture.update(instrument::TouchReport(),now);
+    if(tap.update(report,now)){
+      const TouchAction action={context,int16_t(tap.start.x),int16_t(tap.start.y),0};
+      xQueueSend(touchActions,&action,0);
+    }
+  }else{
+    tap.update(instrument::TouchReport(),now);
+    const int8_t direction=gesture.update(report,now);
+    if(direction){const TouchAction action={context,0,0,direction};xQueueSend(touchActions,&action,0);}
+  }
 }
 
 void initializePanel(void* waiter) {
@@ -149,7 +182,7 @@ bool initializeImu() {
   return imu.enableAccelerometer()&&imu.enableGyroscope();
 }
 
-SampleResult readSample(Vec3& acceleration,Vec3& gyro,Vec3& rawAcceleration) {
+SampleResult readSample(Vec3& acceleration,Vec3& gyro,Vec3& rawAcceleration,UsbSide side) {
   uint8_t status=0,bytes[12];
   if(!readImuRegisters(0x2E,&status,1))return SampleResult::Invalid;
   if((status&3)!=3)return SampleResult::NotReady;
@@ -162,8 +195,8 @@ SampleResult readSample(Vec3& acceleration,Vec3& gyro,Vec3& rawAcceleration) {
     values[i]=raw*(i<3 ? 4.0f/32768.0f : 1024.0f/32768.0f*board::RadPerDegree);
   }
   rawAcceleration={values[0],values[1],values[2]};
-  acceleration=board::toBody(rawAcceleration);
-  gyro=board::toBody({values[3],values[4],values[5]});
+  acceleration=board::toBody(rawAcceleration,side);
+  gyro=board::toBody({values[3],values[4],values[5]},side);
   // Saturated readings invalidate attitude instead of integrating clipped rates.
   for(int i=0;i<3;++i)if(std::fabs(values[i])>3.95f)return SampleResult::Invalid;
   for(int i=3;i<6;++i)if(std::fabs(values[i])>17.7f)return SampleResult::Invalid;
@@ -175,13 +208,16 @@ void samplingTask(void*) {
   instrument::StationaryCalibration calibration;
   Vec3 bias{0,0,0};
   Snapshot state;
+  UsbSide side=initialSide;
+  instrument::CalibrationButton bootButton;
   bool initialized=false;
   uint32_t lastAttempt=millis()-1000,previousMicros=0;
   TickType_t wake=xTaskGetTickCount();
   for(;;){
-    uint32_t command;
+    CalibrationRequest command;
     if(xQueueReceive(commands,&command,0)==pdTRUE){
-      state.calibrationId=command;
+      state.calibrationId=command.id;
+      side=command.side;
       state.calibrated=false;
       state.calibrationCount=0;
       calibration.reset();
@@ -198,7 +234,7 @@ void samplingTask(void*) {
       state.sampledAt=0;
     }
     Vec3 acceleration,gyro,raw;
-    const SampleResult result=initialized?readSample(acceleration,gyro,raw):SampleResult::NotReady;
+    const SampleResult result=initialized?readSample(acceleration,gyro,raw,side):SampleResult::NotReady;
     if(result==SampleResult::Invalid){
       // Known I2C faults or clipped motion invalidate immediately, even when
       // the last good sample is recent. Never integrate across missing motion.
@@ -245,6 +281,7 @@ void samplingTask(void*) {
     xQueueOverwrite(snapshots,&state);
     pollTouch(millis());
     pollPowerButton(millis());
+    if(bootButton.update(true,digitalRead(board::Boot)==LOW,millis()))menuClick.store(true);
     vTaskDelayUntil(&wake,pdMS_TO_TICKS(5));
   }
 }
@@ -266,25 +303,57 @@ void stopWithMessage(const char* message) {
 void applyControl(instrument::InstrumentControls::Action action) {
   if(action==instrument::InstrumentControls::None)return;
   if(action==instrument::InstrumentControls::Calibrate){
-    const uint32_t command=calibrationSession.request();
-    if(!command)return;
+    const auto side=settingsMenu.options.side;
+    const CalibrationRequest command={calibrationSession.request(side!=requestedImuSide),side};
+    if(!command.id)return;
+    requestedImuSide=side;
     xQueueOverwrite(commands,&command);
-    Serial.printf("CALIBRATION start id=%lu; keep installation level and still\n",(unsigned long)command);
+    Serial.printf("CALIBRATION start id=%lu; keep installation level and still\n",(unsigned long)command.id);
   }
   displayPipeline.invalidate();
 }
 
+void updateMenu(uint8_t previousOptions){
+  const auto options=settingsMenu.options;
+  const bool open=settingsMenu.page!=SettingsPage::Closed;
+  touchContext.store(((touchContext.load()&~7u)+8u)|unsigned(options.side)|(open?4u:0u));
+  displayPipeline.invalidate();
+  if(options.encode()!=previousOptions&&preferencesReady&&preferences.putUChar("display",options.encode())!=1)
+    Serial.println("MENU settings could not be saved");
+  Serial.printf("MENU page=%u usb=%s fps=%d\n",unsigned(settingsMenu.page),instrument::SettingsMenu::sideLabel(options.side),options.fps);
+  if(!open&&options.side!=requestedImuSide)applyControl(instrumentControls.shortPress());
+}
+
+void clickMenu(){settingsMenu.click();updateMenu(settingsMenu.options.encode());}
+void tapMenu(int x,int y){
+  const uint8_t previous=settingsMenu.options.encode();
+  if(settingsMenu.tap(x,y))updateMenu(previous);
+}
+
 void controls() {
   const uint32_t now=millis();
-  int8_t direction;
-  if(xQueueReceive(swipes,&direction,0)==pdTRUE){
-    applyControl(instrumentControls.step(direction));swipeCount.fetch_add(1);
-    Serial.printf("SWIPE %s -> %s\n",direction>0?"up":"down",instrumentControls.airspeed()?"airspeed":instrumentControls.attitude()?"attitude":instrumentControls.altimeter()?"altimeter":"hud");
+  if(menuClick.exchange(false))clickMenu();
+  TouchAction touch;
+  if(xQueueReceive(touchActions,&touch,0)==pdTRUE&&touch.context==touchContext.load()){
+    if(touch.direction){
+      applyControl(instrumentControls.step(touch.direction));swipeCount.fetch_add(1);
+      Serial.printf("SWIPE %s -> %s\n",touch.direction>0?"up":"down",instrumentControls.airspeed()?"airspeed":instrumentControls.attitude()?"attitude":instrumentControls.altimeter()?"altimeter":"hud");
+    }else tapMenu(touch.x,touch.y);
   }
-  if(calibrationClick.exchange(false,std::memory_order_acquire))applyControl(instrumentControls.shortPress());
+  if(calibrationClick.exchange(false,std::memory_order_acquire)){
+    if(settingsMenu.page!=SettingsPage::Closed){settingsMenu.page=SettingsPage::Closed;updateMenu(settingsMenu.options.encode());}
+    applyControl(instrumentControls.shortPress());
+  }
   // Bound command processing so a continuously streaming host cannot starve drawing.
-  for(int count=0;count<64&&Serial.available();++count)
-    applyControl(instrumentControls.input(static_cast<char>(Serial.read()),now));
+  for(int count=0;count<64&&Serial.available();++count){
+    const char key=static_cast<char>(Serial.read());
+    if(key=='m')clickMenu();
+    else if(settingsMenu.page==SettingsPage::Closed)applyControl(instrumentControls.input(key,now));
+    else if(key>='1' && key<=(settingsMenu.page==SettingsPage::Main?'2':'4')){
+      const auto row=instrument::SettingsMenu::row(settingsMenu.page,key-'1');
+      tapMenu(row.x+row.width/2,row.y+row.height/2);
+    }
+  }
 }
 
 void setup() {
@@ -295,6 +364,11 @@ void setup() {
   instrument::configureDiagnostics(Serial);
   Serial.printf("CPU MHz: %u; band rows: %u; DMA chunk pixels: %u\n",getCpuFrequencyMhz(),instrument::DisplayBandRows,static_cast<unsigned>(fastPanel.chunkPixels()));
   pinMode(board::Boot,INPUT_PULLUP);
+  preferencesReady=preferences.begin("instrument-ui");
+  if(preferencesReady)settingsMenu.options=instrument::DisplayOptions::decode(preferences.getUChar("display",4));
+  else Serial.println("MENU settings storage unavailable");
+  initialSide=requestedImuSide=settingsMenu.options.side;
+  touchContext.store(unsigned(initialSide));
   Wire.begin(board::Sda,board::Scl,400000);
   Wire.setTimeOut(20);
   // Preserve the factory rail voltages and charging configuration.
@@ -315,19 +389,19 @@ void setup() {
   if(!psramFound())stopWithMessage("ENABLE OPI PSRAM");
   for(auto& frame:frames)frame=static_cast<uint16_t*>(heap_caps_aligned_alloc(16,466*instrument::DisplayBandRows*sizeof(uint16_t),MALLOC_CAP_DMA|MALLOC_CAP_INTERNAL));
   for(auto frame:frames)if(!frame)stopWithMessage("NO FRAME MEMORY");
-  if(!renderer.begin())stopWithMessage("NO FRAME MEMORY");
+  if(!renderer.setInstallation(initialSide))stopWithMessage("NO FRAME MEMORY");
   if(!airspeedRenderer.begin())stopWithMessage("NO AIRSPEED MEMORY");
   if(!altimeterRenderer.begin())stopWithMessage("NO ALTIMETER MEMORY");
   if(!hudRenderer.begin())stopWithMessage("NO HUD MEMORY");
   initializeTouch();
   snapshots=xQueueCreate(1,sizeof(Snapshot));
-  commands=xQueueCreate(1,sizeof(uint32_t));
-  swipes=xQueueCreate(4,sizeof(int8_t));
-  if(!snapshots||!commands||!swipes)stopWithMessage("NO QUEUE MEMORY");
+  commands=xQueueCreate(1,sizeof(CalibrationRequest));
+  touchActions=xQueueCreate(4,sizeof(TouchAction));
+  if(!snapshots||!commands||!touchActions)stopWithMessage("NO QUEUE MEMORY");
   if(xTaskCreatePinnedToCore(samplingTask,"attitude",6144,nullptr,3,nullptr,0)!=pdPASS)
     stopWithMessage("IMU TASK FAILED");
   if(!displayPipeline.begin(display,fastPanel,renderer,airspeedRenderer,altimeterRenderer,hudRenderer,frames,snapshots))stopWithMessage("DISPLAY TASK FAILED");
-  Serial.println("AIRSPEED SIM. PWR click: shared calibration; BOOT/long press: no runtime action; swipe: switch; d: demo. a: airspeed; h: attitude; c: calibrate; v135 + newline: simulated km/h; t: altimeter; u: HUD (IMU attitude, simulated IAS/ALT/HDG); b275 + newline: simulated meters (0-3000).");
+  Serial.println("ATTITUDE (IMU). PWR: shared calibration; BOOT or m: settings; swipe: switch. d: demo; a: airspeed; h: attitude; c: calibrate; v135 + newline: simulated km/h; t: altimeter; u: HUD; b275 + newline: simulated meters (0-3000).");
 }
 
 void loop() {
@@ -339,20 +413,32 @@ void loop() {
     displayPipeline.invalidate();
     Serial.printf("CALIBRATION complete id=%lu; shared pitch=%.2f roll=%.2f\n",(unsigned long)state.calibrationId,state.pitch,state.roll);
   }
+  static uint32_t sequence=0,lastMenuGeneration=0;
+  const uint32_t generation=displayPipeline.generation();
+  if(settingsMenu.page!=SettingsPage::Closed){
+    if(generation!=lastMenuGeneration){
+      instrument::DisplayJob page;
+      page.sequence=++sequence;page.generation=generation;
+      page.menu=settingsMenu.page;page.options=settingsMenu.options;
+      displayPipeline.startFrame(page,0,0);displayPipeline.submit(displayPipeline.nextBand());
+      lastMenuGeneration=generation;
+    }
+    delay(8);return;
+  }
   const bool calibrating=calibrationSession.active();
   const bool airspeed=!calibrating&&instrumentControls.airspeed(),altimeter=!calibrating&&instrumentControls.altimeter(),hud=!calibrating&&instrumentControls.hud(),demo=!calibrating&&instrumentControls.demo();
   const bool fresh=state.sampledAt&&static_cast<uint32_t>(millis()-state.sampledAt)<=100;
   const bool attitude=!calibrating&&instrumentControls.attitude()&&(demo||(state.calibrated&&fresh));
   instrument::DisplayStats stats=displayPipeline.stats();
-  static uint32_t sequence=0;
   ++sequence;
-  const uint32_t generation=displayPipeline.generation();
   float pitch=state.pitch,roll=state.roll;
   if(instrumentControls.attitude()&&demo){float t=static_cast<uint32_t>(millis()-instrumentControls.demoStarted())*.001f;pitch=20*std::sin(t*.5f);roll=40*std::sin(t*.31f);}
-  fpsOverlay.update(stats.fps);
+  if(settingsMenu.options.fps)fpsOverlay.update(stats.fps);
   instrument::DisplayJob request;
   request.state=state;request.demo=demo;request.generation=generation;
   request.sequence=sequence;request.attitude=attitude;
+  request.options=settingsMenu.options;
+  request.fpsTenths=request.options.fps?fpsOverlay.tenths():-1;
   request.altimeter=altimeter;request.altitudeM=instrumentControls.altitude();
   request.airspeed=airspeed;request.speedKmh=instrumentControls.speed();
   request.hud=hud;
@@ -371,20 +457,20 @@ void loop() {
   for(;;){
     instrument::DisplayJob job=displayPipeline.nextBand();
     const unsigned slot=job.slot;
-    const int y=job.firstRow;
-    if(job.altimeter||job.hud){
+    if(job.stagedRound||job.hud){
+      const uint32_t rendered=job.hud?displayPipeline.renderHudRegions(job,false):
+        displayPipeline.renderRoundRegions(job,pitch,roll,false);
+      const auto completed=displayPipeline.parallelBackgroundDone();
+      assert(completed.slot==slot&&completed.sequence==job.sequence);
+      job=completed;job.stages[3]=rendered;job.renderUs+=rendered;
+      if(job.stagedRound)for(unsigned i=0;i<3;++i)job.stages[i+1]=displayPipeline.workerStages[0][i]+displayPipeline.workerStages[1][i];
+    }else if(job.altimeter){
       size_t offset=0;uint32_t backgroundUs=0,foregroundUs=0;
       for(int i=0;i<job.altitudeDamage.count;++i){
         const auto r=job.altitudeDamage.regions[i];
-        if(job.hud?!instrument::HudRenderer::backgroundRegion(i):bool(i&1)){
+        if(job.altimeter?bool(i&1):!instrument::HudRenderer::backgroundRegion(i)){
           uint32_t tick=micros();
-          if(job.hud){
-            auto* target=displayPipeline.airspeedPixels(slot)+offset;
-            const size_t pixels=size_t(r.width)*r.height;
-            auto* scratch=pixels<=466*instrument::DisplayBandRows/2?frames[slot]+466*instrument::DisplayBandRows/2:target;
-            hudRenderer.renderPrepared(scratch,slot,r);
-            if(scratch!=target)std::memcpy(target,scratch,pixels*sizeof(uint16_t));
-          }
+          if(job.hud)displayPipeline.renderHudRegion(job,r,offset,false);
           else {altimeterRenderer.renderBackgroundRectangle(displayPipeline.airspeedPixels(slot)+offset,r);backgroundUs+=micros()-tick;
             tick=micros();altimeterRenderer.renderForegroundPrepared(displayPipeline.airspeedPixels(slot)+offset,slot,r);}
           foregroundUs+=micros()-tick;
@@ -399,12 +485,13 @@ void loop() {
       const uint32_t began=micros();
       airspeedRenderer.renderForegroundRectangle(displayPipeline.airspeedPixels(slot),job.speedKmh,job.patch);
       job.stages[1]=micros()-began;job.renderUs+=job.stages[1];
-    }else if(attitude){
+    }else if(job.attitude){
       uint32_t began=micros();
-      renderer.renderForegroundBand(frames[slot],pitch,roll,y,job.rows,true);
-      const instrument::CircleBand band=instrument::circleBandBounds(y,job.rows);
-      fpsOverlay.blitBand(frames[slot],band.width,y,job.rows,band.x);
-      if(demo)fpsOverlay.blitDemoBand(frames[slot],band.width,y,job.rows,band.x);
+      const auto rect=job.patch;
+      auto* pixels=frames[slot];
+      renderer.renderForegroundWindow(pixels,pitch,roll,rect);
+      if(job.options.fps)fpsOverlay.blitPanelBand(pixels,rect,job.options.side);
+      if(demo)fpsOverlay.blitPanelLegend(pixels,rect,job.options.side,true);
       job.renderUs+=micros()-began;
       for(unsigned i=1;i<4;++i)job.stages[i]=instrument::renderStages[i];
     }
@@ -417,13 +504,13 @@ void loop() {
     lastSamples=state.samples;lastLog=millis();
     char message[720];
     const uint32_t tp=touchPosition.load(std::memory_order_relaxed);
-    const int length=snprintf(message,sizeof(message),"fps=%.1f pitch=%.1f roll=%.1f valid=%d cal=%u demo=%d raw_g=%.3f,%.3f,%.3f render_ms=%.1f tx_ms=%.1f frame_ms=%.1f max_gap_ms=%.1f sample_hz=%.1f heap=%u drops=%lu setup_ms=%.1f stack=%u,%u,%u stages=%lu,%lu,%lu,%lu mode=%s speed=%.1f altitude_m=%.1f te_us=%lu te_miss=%lu te_pulses=%lu patch=%lu touch=%lu touch_err=%lu touch_xy=%u,%u touch_n=%u swipes=%lu scan_us=%ld,%ld cal_id=%lu cal_ui=%d pwr_clicks=%lu\n",
+    const int length=snprintf(message,sizeof(message),"fps=%.1f pitch=%.1f roll=%.1f valid=%d cal=%u demo=%d raw_g=%.3f,%.3f,%.3f render_ms=%.1f tx_ms=%.1f frame_ms=%.1f max_gap_ms=%.1f sample_hz=%.1f heap=%u drops=%lu setup_ms=%.1f stack=%u,%u,%u stages=%lu,%lu,%lu,%lu mode=%s speed=%.1f altitude_m=%.1f te_us=%lu te_miss=%lu te_pulses=%lu patch=%lu touch=%lu touch_err=%lu touch_xy=%u,%u touch_n=%u swipes=%lu scan_us=%ld,%ld cal_id=%lu cal_ui=%d pwr_clicks=%lu usb=%s round_cross=%lu hud_cross=%lu\n",
       stats.fps,hud?request.hudInput.pitch:state.pitch,hud?request.hudInput.roll:state.roll,state.calibrated&&fresh,state.calibrationCount,demo,
       state.rawAcceleration.x,state.rawAcceleration.y,state.rawAcceleration.z,
       stats.renderUs/1000.f,stats.transferUs/1000.f,stats.intervalUs/1000.f,stats.maxGapUs/1000.f,
       sampleHz,ESP.getFreeHeap(),static_cast<unsigned long>(droppedLogs),stats.setupUs/1000.f,
       static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)),stats.stackFree,stats.backgroundStackFree,
-      (unsigned long)stats.stages[0],(unsigned long)stats.stages[1],(unsigned long)stats.stages[2],(unsigned long)stats.stages[3],airspeed?"airspeed":altimeter?"altimeter":hud?"hud":"attitude",hud?request.hudInput.speedKmh:instrumentControls.speed(),hud?request.hudInput.altitudeM:instrumentControls.altitude(),(unsigned long)stats.tePeriodUs,(unsigned long)stats.teMisses,(unsigned long)stats.tePulses,(unsigned long)stats.patchPixels,(unsigned long)touchPackets.load(),(unsigned long)touchErrors.load(),unsigned((tp>>9)&511),unsigned(tp&511),unsigned(tp>>18),(unsigned long)swipeCount.load(),(long)stats.scanMinUs,(long)stats.scanMaxUs,(unsigned long)state.calibrationId,calibrating,(unsigned long)calibrationClicks.load());
+      (unsigned long)stats.stages[0],(unsigned long)stats.stages[1],(unsigned long)stats.stages[2],(unsigned long)stats.stages[3],airspeed?"airspeed":altimeter?"altimeter":hud?"hud":"attitude",hud?request.hudInput.speedKmh:instrumentControls.speed(),hud?request.hudInput.altitudeM:instrumentControls.altitude(),(unsigned long)stats.tePeriodUs,(unsigned long)stats.teMisses,(unsigned long)stats.tePulses,(unsigned long)stats.patchPixels,(unsigned long)touchPackets.load(),(unsigned long)touchErrors.load(),unsigned((tp>>9)&511),unsigned(tp&511),unsigned(tp>>18),(unsigned long)swipeCount.load(),(long)stats.scanMinUs,(long)stats.scanMaxUs,(unsigned long)state.calibrationId,calibrating,(unsigned long)calibrationClicks.load(),instrument::SettingsMenu::sideLabel(settingsMenu.options.side),(unsigned long)stats.roundScanCrosses,(unsigned long)stats.hudScanCrosses);
     if(length<=0||length>=static_cast<int>(sizeof(message))||!instrument::tryDiagnostic(Serial,message,length))++droppedLogs;
   }
   // Allow idle/housekeeping regularly without inserting a pause in every image.

@@ -37,4 +37,23 @@ class VerticalSwipe {
   bool active_=false,blocked_=false;uint8_t id_=0;
   int startX_=0,startY_=0;uint32_t started_=0,last_=0;
 };
+class TouchTap {
+ public:
+  bool update(const TouchReport& point,uint32_t now){
+    if(!point.contacts){
+      const bool tapped=active_&&!blocked_&&uint32_t(now-started_)>=30&&uint32_t(now-started_)<=650;
+      active_=blocked_=false;return tapped;
+    }
+    if(point.contacts!=1)cancel();
+    if(blocked_)return false;
+    if(!active_){start=point;started_=now;active_=true;}
+    else if(point.id!=start.id||std::abs(point.x-start.x)>20||std::abs(point.y-start.y)>20)cancel();
+    return false;
+  }
+  void cancel(){blocked_=true;active_=false;}
+  TouchReport start;
+ private:
+  bool active_=false,blocked_=false;
+  uint32_t started_=0;
+};
 }

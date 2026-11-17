@@ -3,33 +3,109 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>航模 HUD · 交互演示</title>
+<title>航模仪表 · 尺寸对照</title>
 <style>
 :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111411;color:#e3e9df;--green:#7acb66;--muted:#8e9b8a;--line:#30382d}
-*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}main{max-width:1260px;margin:auto;padding:32px 36px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px;border-bottom:1px solid var(--line);padding-bottom:22px}.eyebrow,.spec,.en,.caption,.endpoints{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.eyebrow{font-size:10px;letter-spacing:2.5px;color:var(--muted)}h1{font-size:25px;font-weight:500;margin:9px 0 0}.spec{font-size:11px;color:var(--muted);text-align:right;line-height:1.9}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:40px;align-items:start;padding:30px 0}.stage{min-width:0;position:sticky;top:24px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.layout-name{font-size:11px;letter-spacing:1px;color:#bac7b3}button{border:1px solid #3b4736;border-radius:4px;background:#1a2018;color:#bac7b3;padding:10px 12px}button:hover{background:#2a3525;color:#e1efdb}button[aria-pressed=true]{background:#c0ddb1;color:#182414;border-color:#c0ddb1}button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:4px}.sim-label{font:10px ui-monospace,monospace;letter-spacing:1.8px;color:#98b18d}.screen-space{display:flex;justify-content:center;align-items:center;min-height:420px;background:#0b0e0b;padding:24px 0}.screen{width:100%;max-width:466px;aspect-ratio:1;border-radius:50%;background:#000}canvas{display:block;width:100%;height:100%}.caption{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:10px;line-height:1.8;margin-top:18px}.panel{min-width:0}.panel-title{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;font-size:13px;font-weight:500}.panel-title span{font:10px ui-monospace,monospace;letter-spacing:1.5px;color:var(--muted)}.field{margin-bottom:20px}.field-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;gap:16px}.field label{font-size:12px}.en{font-size:9px;letter-spacing:1.2px;color:var(--muted);margin-left:6px}.reading{display:flex;align-items:baseline;gap:6px}.reading input{width:64px;border:0;border-bottom:1px solid #43513d;border-radius:0;background:transparent;color:#d7e9ce;text-align:right;padding:2px 0;font:20px ui-monospace,monospace;appearance:textfield}.reading input::-webkit-inner-spin-button,.reading input::-webkit-outer-spin-button{appearance:none}.reading .unit{color:var(--muted);font-size:10px;min-width:27px}input[type=range]{width:100%;height:4px;margin:0;accent-color:var(--green);cursor:pointer}.endpoints{display:flex;justify-content:space-between;color:#7c8a74;font-size:9px;margin-top:7px}.demo{width:100%;padding:13px;font-size:12px;background:#a5ce93;color:#162111;font-weight:600;border-color:#a5ce93}.demo[aria-pressed=true]{background:#293a21;color:#d4eec6;border-color:#557748}.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 20px}.presets button{font-size:11px;padding:9px 4px}.options{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:14px}.check{display:flex;gap:8px;align-items:center;font-size:11px;color:#b7c3af;cursor:pointer}.check input{accent-color:var(--green);margin:0;width:14px;height:14px}.note{font-size:11px;line-height:1.8;color:var(--muted);margin:18px 0 0}.footer{border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;color:var(--muted)}.footer button{font-size:11px;padding:8px 12px}#motionState{color:#bdcdb3}.screen:fullscreen{max-width:none;width:100vw;height:100vh;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000;border-radius:0}.screen:fullscreen canvas{width:min(100vw,100vh);height:auto;aspect-ratio:1}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}main{max-width:1260px;margin:auto;padding:32px 36px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px;border-bottom:1px solid var(--line);padding-bottom:22px}.eyebrow,.spec,.en,.caption,.endpoints{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.eyebrow{font-size:10px;letter-spacing:2.5px;color:var(--muted)}h1{font-size:25px;font-weight:500;margin:9px 0 0}.spec{font-size:11px;color:var(--muted);text-align:right;line-height:1.9}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:40px;align-items:start;padding:30px 0}.stage{min-width:0;position:sticky;top:24px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.layout-name{font-size:11px;letter-spacing:1px;color:#bac7b3}button{border:1px solid #3b4736;border-radius:4px;background:#1a2018;color:#bac7b3;padding:10px 12px}button:hover{background:#2a3525;color:#e1efdb}button[aria-pressed=true]{background:#c0ddb1;color:#182414;border-color:#c0ddb1}button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:4px}.sim-label{font:10px ui-monospace,monospace;letter-spacing:1.8px;color:#98b18d}.screen-space{display:flex;justify-content:center;align-items:center;min-height:420px;background:#0b0e0b;padding:24px 0}.screen{width:100%;max-width:466px;aspect-ratio:1;border-radius:50%;background:#000}canvas{display:block;width:100%;height:100%}.caption{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:10px;line-height:1.8;margin-top:18px}.panel{min-width:0}.panel-title{display:flex;justify-content:space-between;align-items:center;margin:0 0 18px;font-size:13px;font-weight:500}.panel-title span{font:10px ui-monospace,monospace;letter-spacing:1.5px;color:var(--muted)}.field{margin-bottom:20px}.field-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;gap:16px}.field label{font-size:12px}.en{font-size:9px;letter-spacing:1.2px;color:var(--muted);margin-left:6px}.reading{display:flex;align-items:baseline;gap:6px}.reading input{width:64px;border:0;border-bottom:1px solid #43513d;border-radius:0;background:transparent;color:#d7e9ce;text-align:right;padding:2px 0;font:20px ui-monospace,monospace;appearance:textfield}.reading input::-webkit-inner-spin-button,.reading input::-webkit-outer-spin-button{appearance:none}.reading .unit{color:var(--muted);font-size:10px;min-width:27px}input[type=range]{width:100%;height:4px;margin:0;accent-color:var(--green);cursor:pointer}.endpoints{display:flex;justify-content:space-between;color:#7c8a74;font-size:9px;margin-top:7px}.demo{width:100%;padding:13px;font-size:12px;background:#a5ce93;color:#162111;font-weight:600;border-color:#a5ce93}.demo[aria-pressed=true]{background:#293a21;color:#d4eec6;border-color:#557748}.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 20px}.presets button{font-size:11px;padding:9px 4px}.options{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:14px}.check{display:flex;gap:8px;align-items:center;font-size:11px;color:#b7c3af;cursor:pointer}.check input{accent-color:var(--green);margin:0;width:14px;height:14px}.note{font-size:11px;line-height:1.8;color:var(--muted);margin:18px 0 0}.footer{border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;color:var(--muted)}.footer button{font-size:11px;padding:8px 12px}#motionState{color:#bdcdb3}
 @media(max-width:850px){main{padding:24px 20px}.workspace{grid-template-columns:1fr;gap:28px}.stage{position:static}.screen-space{min-height:0;padding:18px 0}.panel{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}.panel-title,.actions,.options,.note{grid-column:1/-1}.caption{font-size:9px}.spec{font-size:9px}.screen{max-width:466px}.actions{max-width:480px;width:100%;justify-self:center}}
 @media(max-width:430px){main{padding:20px 14px}.workspace{padding:22px 0}.panel{gap:0 18px}.en{display:none}.field-head{gap:6px}.field label{font-size:11px}.reading input{width:50px;font-size:18px}.reading{gap:3px}.reading .unit{min-width:18px;font-size:9px}.spec{max-width:135px}.toolbar{gap:8px}.caption{display:block}.caption span{display:block}.footer{flex-wrap:wrap}.screen-space{padding:12px 0}}
+[hidden]{display:none!important}
+header .spec{font-size:12px}
+.dial-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.dial-tabs button{padding:8px 12px;font-size:12px}
+.screen-space{min-height:320px;overflow:auto;justify-content:safe center}
+.screen{flex:none;overflow:hidden;touch-action:pan-x pinch-zoom}
+.screen-space[data-size="physical"] .screen{width:var(--dial-diameter,168.19px);max-width:none}
+.screen-space:fullscreen{background:#0b0e0b}
+#exitFullscreen{display:none}
+.screen-space:fullscreen #exitFullscreen{display:block;position:fixed;top:16px;right:16px}
+.screen-space[data-size="fit"]:fullscreen .screen{width:min(100vw,100vh);max-width:none}
+.screen img{display:block;width:100%;height:100%;object-fit:contain}
+.settings{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.settings h2,dialog h2{margin:0 0 13px;font-size:14px;font-weight:600}
+.size-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;margin-bottom:12px}
+.size-row .reading input{font-size:17px}
+.size-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.size-actions button{font-size:11px;padding:8px 9px}
+.settings output{display:block;margin-top:8px;font-size:11px;color:#aab8a3;line-height:1.6}
+.toolbar{align-items:center;min-height:36px;margin-bottom:12px}
+.toolbar #fullscreen{flex:none;padding:8px 12px;font-size:12px}
+.footer a{display:inline-block;padding:8px 12px;border:1px solid #3b4736;border-radius:4px;background:#1a2018;color:#bac7b3;text-decoration:none}
+.footer a:hover{background:#2a3525;color:#e1efdb}
+dialog{width:min(540px,calc(100% - 28px));padding:24px;border:1px solid #414c3d;border-radius:8px;background:#171c16;color:#e3e9df}
+dialog::backdrop{background:#000a}
+dialog p{color:#b7c3af;font-size:13px;line-height:1.65}
+.ruler-area{overflow-x:auto;padding:14px 8px;background:#0a0d0a;margin:16px 0;text-align:center}
+.ruler{position:relative;width:var(--ruler-width);height:24px;margin:auto;background:linear-gradient(#c0ddb1,#c0ddb1) center / 100% 1px no-repeat}
+.ruler::before,.ruler::after{content:"";position:absolute;inset-block:0;width:1px;background:#e1efdb;transform:translateX(-50%)}
+.ruler::before{left:0}.ruler::after{left:100%}
+dialog input{width:6em;padding:6px 8px;border:1px solid #43513d;border-radius:4px;background:#10150f;color:#e3e9df}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+@media(max-width:850px){
+  .stage{position:static}.screen-space:not(:fullscreen){min-height:245px}
+  .panel{display:block}.hud-controls{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+}
+@media(max-width:430px){.hud-controls{column-gap:12px}.dial-tabs button{padding:7px 9px}.toolbar{flex-wrap:wrap}}
 </style>
 </head>
 <body>
 <main>
-<header><div><div class="eyebrow">MODEL COCKPIT / 04</div><h1>航模 HUD</h1></div><div class="spec">MONOCHROME FLIGHT DISPLAY<br>空速 km/h · 高度 m</div></header>
+<header><h1>航模仪表预览</h1><div class="spec">466 × 466 圆形屏</div></header>
 <div class="workspace">
-<section class="stage" aria-label="HUD 表盘预览">
-<div class="toolbar"><span class="layout-name">圆形屏 · 466</span><span class="sim-label">SIMULATION</span></div>
-<div class="screen-space"><div class="screen" id="screen"><canvas id="hud" width="932" height="932" role="img" aria-label="HUD 模拟仪表">HUD 需要支持 Canvas 的浏览器。</canvas></div></div>
-<div class="caption"><span>466 × 466</span><span>顶部航向 / 左侧空速 / 右侧高度 / 底部横滚</span></div>
+<section class="stage" aria-label="表盘预览">
+<div class="toolbar">
+  <div class="dial-tabs" role="group" aria-label="切换表盘">
+    <button type="button" data-dial="attitude" aria-pressed="true">圆形姿态仪</button>
+    <button type="button" data-dial="hud" aria-pressed="false">HUD</button>
+    <button type="button" data-dial="airspeed" aria-pressed="false">空速表</button>
+    <button type="button" data-dial="altimeter" aria-pressed="false">高度计</button>
+  </div>
+  <button id="fullscreen" type="button">全屏对照</button>
+</div>
+<div class="screen-space" id="screenSpace" data-size="physical"><div class="screen" id="screen">
+  <canvas id="hud" width="932" height="932" role="img" aria-label="HUD 模拟仪表" hidden>HUD 需要支持 Canvas 的浏览器。</canvas>
+  <img id="stillDial" src="dials/attitude.png" alt="圆形姿态仪" width="466" height="466" draggable="false">
+</div><button id="exitFullscreen" type="button">退出全屏</button></div>
+<div class="caption"><span id="dialCaption" aria-live="polite">圆形姿态仪</span><span>触屏上下滑动可循环切换</span></div>
 </section>
-<section class="panel" aria-label="模拟飞行参数">
+<section class="panel" aria-label="预览设置和模拟飞行参数">
+<div class="settings">
+  <h2>实物尺寸</h2>
+  <div class="size-row"><label for="diameter">圆屏直径</label><div class="reading"><input id="diameter" type="number" min="25" max="125" step="0.1" value="44.5" aria-describedby="sizeStatus"><span class="unit">mm</span></div></div>
+  <input id="diameterSlider" type="range" min="25" max="125" step="0.1" value="44.5" aria-label="调整圆屏直径">
+  <div class="size-actions">
+    <button id="calibrateSize" type="button">校准尺寸</button>
+    <button id="fitPreview" type="button" aria-pressed="false">放大预览</button>
+    <button id="boardSize" type="button">恢复板载尺寸</button>
+  </div>
+  <output id="sizeStatus">直径 44.5 mm · 待校准</output>
+</div>
+<div class="hud-controls" id="hudControls" hidden>
 <h2 class="panel-title">模拟飞行参数 <span>FLIGHT CONTROLS</span></h2>
 <div id="fields" style="display:contents"></div>
 <div class="actions"><button class="demo" id="demo" type="button" aria-pressed="false">开始自动演示</button><div class="presets"><button type="button" data-preset="level">平飞</button><button type="button" data-preset="climb">爬升</button><button type="button" data-preset="turn">右转弯</button></div></div>
 <div class="options"><label class="check"><input id="glow" type="checkbox" checked>柔和荧光</label><label class="check"><input id="declutter" type="checkbox">简化显示 · 隐藏辅助数据</label></div>
 <p class="note">拖动滑块或输入数值。调整任一参数会暂停演示。数值均为模拟输入。</p>
+</div>
 </section>
 </div>
-<footer class="footer"><span id="motionState" role="status">手动预览</span><span>0–200 km/h · 0–3,000 m</span><div><button id="reset" type="button">复位</button> <button id="fullscreen" type="button">全屏表盘</button> <button id="save" type="button">保存 PNG</button></div></footer>
+<footer class="footer">
+  <span id="motionState" role="status" hidden>手动预览</span>
+  <div><button id="reset" type="button" hidden>复位参数</button> <button id="save" type="button" hidden>保存 PNG</button> <a id="saveStill" href="dials/attitude.png" download>保存 PNG</a></div>
+</footer>
 </main>
+<dialog id="sizeDialog" aria-labelledby="sizeDialogHeading">
+  <h2 id="sizeDialogHeading">校准显示尺寸</h2>
+  <p>用实体尺测量下方两条竖线之间的距离，再输入读到的毫米数。</p>
+  <div class="ruler-area"><div id="ruler" class="ruler" aria-label="50 毫米校准参考线"></div></div>
+  <form id="sizeCalibration">
+    <label for="measured">测得长度</label>
+    <input id="measured" type="number" min="10" max="150" step="0.1" required autofocus> mm
+    <div class="dialog-actions"><button id="resetSizeCalibration" type="button" hidden>清除校准</button><button id="cancelSize" type="button">取消</button><button type="submit">应用校准</button></div>
+  </form>
+</dialog>
+<script src="hud_font.js"></script>
+<script src="compare.js"></script>
 <script>
 'use strict';
 (() => {
@@ -41,18 +117,26 @@
     {key:'roll',label:'横滚',en:'ROLL',unit:'°',min:-60,max:60,step:1,value:0},
     {key:'climb',label:'升降率',en:'V/S',unit:'m/s',min:-15,max:15,step:.1,value:1.2}
   ];
-  const canvas=document.querySelector('#hud'),ctx=canvas.getContext('2d'),screen=document.querySelector('#screen');
+  const canvas=document.querySelector('#hud'),ctx=canvas.getContext('2d');
   const demoButton=document.querySelector('#demo'),status=document.querySelector('#motionState');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const defaults=Object.fromEntries(config.map(c=>[c.key,c.value]));
   let target={...defaults},shown={...defaults},origin={...defaults};
   let demo=false,demoTime=0,lastTime=0,frame=0,density=2;
   const counters=Object.fromEntries(['speed','altitude'].map(key=>[key,{from:defaults[key],to:defaults[key],moving:false,phase:0}]));
-  const palette={primary:'#00ff00',secondary:'#00c600',minor:'#008c00'};
-  const scaleTicks={long:17,short:9,width:1.5};
-  const hudFont='ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace';
-  const selectedLabel={size:22,weight:'700'};
-  let counterBaselineOffset;
+  const palette={primary:'#00ff00',secondary:'#00c600',minor:'#00b400',pitch:'#00ec00'};
+  const scaleTicks={long:17,short:9};
+  const selectedLabelSize=22;
+  const font=HUD_FONT,atlas=document.createElement('canvas');
+  atlas.width=font.width*font.chars.length;atlas.height=font.height;
+  const atlasCtx=atlas.getContext('2d'),pixels=atlasCtx.createImageData(atlas.width,atlas.height);
+  const coverage=atob(font.coverage),glyphArea=font.width*font.height;
+  for(let i=0;i<font.chars.length;i++)for(let y=0;y<font.height;y++)for(let x=0;x<font.width;x++){
+    const at=(y*atlas.width+i*font.width+x)*4;
+    pixels.data[at+1]=255;
+    pixels.data[at+3]=coverage.charCodeAt(i*glyphArea+y*font.width+x);
+  }
+  atlasCtx.putImageData(pixels,0,0);
   let previewFrames=0,previewSince=0,previewFps=-1;
   const ladderLayer=document.createElement('canvas'),ladderMask=document.createElement('canvas');
   const ladderCtx=ladderLayer.getContext('2d'),maskCtx=ladderMask.getContext('2d');
@@ -73,31 +157,46 @@
     number.addEventListener('change',()=>setValue(c,number.valueAsNumber));number.addEventListener('blur',sync);
   });
   function line(points,draw=ctx){draw.beginPath();points.forEach(([x,y],i)=>i?draw.lineTo(x,y):draw.moveTo(x,y));draw.stroke();}
-  function text(value,x,y,align='center',size=12,weight='normal',draw=ctx){draw.font=`${weight} ${size}px ${hudFont}`;draw.textAlign=align;draw.textBaseline='middle';const glow=draw.shadowBlur;if(size<=13)draw.shadowBlur=0;draw.fillText(String(value),x,y);draw.shadowBlur=glow;}
+  function textWidth(value,size){return String(value).length*font.advance*size/font.size;}
+  function textLeft(value,x,align,size){
+    return x-textWidth(value,size)*(align==='center'?.5:align==='right'?1:0)-font.originX*size/font.size;
+  }
+  function text(value,x,y,align='center',size=12,draw=ctx){
+    const scale=size/font.size,left=textLeft(value,x,align,size),top=y-font.digitCenterY*scale;
+    draw.save();
+    if(size<=13)draw.shadowBlur=0;
+    if(draw.fillStyle===palette.secondary)draw.globalAlpha*=198/255;
+    [...String(value)].forEach((character,i)=>{
+      const glyph=font.chars.indexOf(character);if(glyph<0)return;
+      const [l,t,r,b]=font.bounds[glyph];if(r<0)return;
+      const w=r-l+3,h=b-t+3;
+      draw.drawImage(atlas,glyph*font.width+l-1,t-1,w,h,
+        left+(i*font.advance+l-1)*scale,top+(t-1)*scale,w*scale,h*scale);
+    });
+    draw.restore();
+  }
   function indexTriangle(tipX,tipY,dx,dy){
     const height=12,halfWidth=6;
     const baseX=tipX-dx*height,baseY=tipY-dy*height;
-    ink('primary',1.6);
+    ink('primary',3.2);
     line([[tipX,tipY],[baseX-dy*halfWidth,baseY+dx*halfWidth],
       [baseX+dy*halfWidth,baseY-dx*halfWidth],[tipX,tipY]]);
   }
   function geometry(){
-    const g={w:466,h:466,cx:233,cy:234,lx:85,rx:381,top:122,bottom:346,tapeCap:34,hy:72,half:104,pitchHalf:80,clipLeft:102,clipRight:364,clipTop:114,clipBottom:350};
-    ctx.save();ctx.font=`${selectedLabel.weight} ${selectedLabel.size}px ${hudFont}`;
+    const g={w:466,h:466,cx:233,cy:234,lx:85,rx:381,top:122,bottom:346,tapeCap:34,hy:72,half:104,clipLeft:102,clipRight:364,clipTop:114,clipBottom:350};
     // Reserve the largest endpoint label so emphasis never moves the scale.
-    const endHalf=Math.max(ctx.measureText('-60').width,ctx.measureText('+60').width)/2;
-    ctx.restore();
+    const endHalf=textWidth('+60',selectedLabelSize)/2;
     g.rollLabelGap=23;
     g.rollRadius=(g.half-endHalf)/Math.sin(Math.PI/3)-g.rollLabelGap;
     g.rollCy=g.cy+186-g.rollRadius;
-    // All minor divisions share the physical pitch of a 10-degree bank step.
-    g.tickPitch=g.rollRadius*Math.PI/18;
+    // Keep the tape travel constant while drawing fewer divisions.
+    g.tapeScale=g.rollRadius*Math.PI/90;
     return g;
   }
   function ink(tone='secondary',width=1.5,draw=ctx){draw.strokeStyle=draw.fillStyle=palette[tone];draw.shadowColor=palette[tone];draw.lineWidth=width;}
   function scaleTick(x,y,dx,dy,major,highlight=false,amount=0){
-    ink(highlight?'primary':major?'secondary':'minor',scaleTicks.width+1.7*amount);
-    if(!highlight){const green=(major?198:140)+(255-(major?198:140))*amount;ctx.strokeStyle=`rgb(0,${green},0)`;}
+    ink(highlight?'primary':major?'secondary':'minor',(major?3.4:2.5)+1.3*amount);
+    if(!highlight){const base=major?224:180;ctx.strokeStyle=`rgb(0,${base+(255-base)*amount},0)`;}
     const length=major?scaleTicks.long:scaleTicks.short;
     line([[x,y],[x+dx*length,y+dy*length]]);
   }
@@ -106,22 +205,11 @@
     const t=clamp(1-Math.abs(distance)/step,0,1);
     return t*t*(3-2*t);
   }
-  function scaleLabel(value,x,y,amount,baseSize,baseWeight='normal'){
-    const size=baseSize+(selectedLabel.size-baseSize)*amount;
-    ctx.save();ctx.shadowBlur=0;ctx.textAlign='center';ctx.textBaseline='middle';
-    // Add the two weighted glyph masks on the black dial without a mid-fade dip.
-    ctx.globalCompositeOperation='lighter';
-    ctx.fillStyle=palette.primary;
-    const opacity=ctx.globalAlpha,weight=.35+.65*amount;
-    // Static system fonts cannot interpolate weight: blend both faces instead.
-    if(weight<1){
-      ctx.font=`${baseWeight} ${size}px ${hudFont}`;
-      ctx.globalAlpha=opacity*(1-weight);ctx.fillText(String(value),x,y);
-    }
-    if(weight>0){
-      ctx.font=`${selectedLabel.weight} ${size}px ${hudFont}`;
-      ctx.globalAlpha=opacity*weight;ctx.fillText(String(value),x,y);
-    }
+  function scaleLabel(value,x,y,amount,baseSize){
+    const size=baseSize+(selectedLabelSize-baseSize)*amount;
+    ctx.save();ink('primary');ctx.shadowBlur=0;
+    ctx.globalAlpha*=(236+19*amount)/255;
+    text(value,x,y,'center',size);
     ctx.restore();
   }
   function resetCounters(){advanceCounters();}
@@ -135,47 +223,44 @@
     const c=counters[left?'speed':'altitude'],digits=left?3:4,direction=c.to>=c.from?1:-1;
     const progress=c.phase;
     ctx.save();ctx.beginPath();ctx.rect(x-width/2+3,y-16,width-6,32);ctx.clip();
-    ctx.font=`500 26px ${hudFont}`;ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    if(counterBaselineOffset===undefined){const metrics=ctx.measureText('0123456789');counterBaselineOffset=(metrics.actualBoundingBoxAscent-metrics.actualBoundingBoxDescent)/2;}
     const previous=String(c.from).padStart(digits,' '),next=String(c.to).padStart(digits,' ');
     let fixed='',outgoing='',incoming='';
     for(let i=0;i<digits;i++){
       const changed=c.moving&&previous[i]!==next[i];
       fixed+=changed?' ':next[i];outgoing+=changed?previous[i]:' ';incoming+=changed?next[i]:' ';
     }
-    ctx.fillText(fixed,x,y+counterBaselineOffset);
-    if(c.moving){ctx.fillText(outgoing,x,y+counterBaselineOffset+direction*progress*34);
-      ctx.fillText(incoming,x,y+counterBaselineOffset-direction*(1-progress)*34);}
+    text(fixed,x,y,'center',26);
+    if(c.moving){text(outgoing,x,y+direction*progress*34,'center',26);
+      text(incoming,x,y-direction*(1-progress)*34,'center',26);}
     ctx.shadowBlur=0;ctx.drawImage(digitShade,x-width/2+3,y-16,width-6,32);ctx.restore();
   }
   function tape(g,left,value){
-    const x=left?g.lx:g.rx,sign=left?-1:1,minor=5,major=20,max=left?200:3000,scale=g.tickPitch/minor;
+    const x=left?g.lx:g.rx,sign=left?-1:1,minor=10,major=20,max=left?200:3000,scale=g.tapeScale;
     const edge=x+sign*g.tapeCap;
-    ctx.save();ink();line([[edge,g.top],[x,g.top],[x,g.bottom],[edge,g.bottom]]);
+    ctx.save();ink('secondary',2.6);line([[edge,g.top],[x,g.top],[x,g.bottom],[edge,g.bottom]]);
     const lo=Math.max(0,Math.ceil((value-(g.bottom-g.cy)/scale)/minor)*minor),hi=Math.min(max,value+(g.cy-g.top)/scale);
     for(let v=lo;v<=hi+.001;v+=minor){
       const y=g.cy-(v-value)*scale,isMajor=v%major===0;
       if(y<g.top+4||y>g.bottom-4)continue;
       scaleTick(x,y,sign,0,isMajor);
       if(isMajor&&Math.abs(y-g.cy)>33&&y>g.top+15&&y<g.bottom-15){
-        ctx.font=`500 18px ${hudFont}`;
-        const farX=Math.abs(x+sign*22-g.cx)+ctx.measureText(String(v)).width+2,farY=Math.abs(y-233)+13;
+        const farX=Math.abs(x+sign*22-g.cx)+textWidth(v,18)+2,farY=Math.abs(y-233)+13;
         const edge=Math.min(y-(g.top+15),(g.bottom-15)-y,Math.abs(y-g.cy)-33);
         const opacity=visibility(edge)*visibility((231*231-farX*farX-farY*farY)/(2*231),14);
-        if(opacity>0){ctx.save();ctx.globalAlpha*=opacity;ink('primary');text(v,x+sign*22,y,left?'right':'left',18,'500');ctx.restore();}
+        if(opacity>0){ctx.save();ctx.globalAlpha*=opacity;ink('primary');text(v,x+sign*22,y,left?'right':'left',18);ctx.restore();}
       }
     }
     const inner=x+sign*9,outer=inner+sign*72,halfHeight=20,bevel=2;
-    ink('primary',1.6);
+    ink('primary',3.2);
     ctx.beginPath();ctx.moveTo(x,g.cy);ctx.lineTo(inner,g.cy-halfHeight);ctx.lineTo(outer-sign*bevel,g.cy-halfHeight);ctx.lineTo(outer,g.cy-halfHeight+bevel);ctx.lineTo(outer,g.cy+halfHeight-bevel);ctx.lineTo(outer-sign*bevel,g.cy+halfHeight);ctx.lineTo(inner,g.cy+halfHeight);ctx.closePath();
     ctx.save();ctx.shadowBlur=0;ctx.fillStyle='#000';ctx.fill();ctx.restore();ctx.stroke();
     counterDigits(left,(inner+outer)/2,g.cy,Math.abs(outer-inner));
-    if(!declutterControl.checked){ink('primary');text(left?'KM/H':'M',x+sign*g.tapeCap/2,g.top-18,'center',14,'500');}
+    if(!declutterControl.checked){ink('primary');text(left?'KM/H':'M',x+sign*g.tapeCap/2,g.top-18,'center',14);}
     ctx.restore();
   }
   function heading(g){
     ctx.save();ink();
-    const raw=shown.heading,minor=5,spacing=g.tickPitch/minor;
+    const raw=shown.heading,minor=10,spacing=g.tapeScale;
     const left=g.cx-g.half,right=g.cx+g.half,labelHalf=g.half-24;
     const direction=bearing=>['N','E','S','W'][Math.round(wrap(bearing)/90)%4];
     // Fixed end labels point to the nearest cardinal beyond the readable tape.
@@ -186,19 +271,18 @@
       const x=g.cx+(v-raw)*spacing;if(x<left+1||x>right-1)continue;
       const degrees=Math.round(wrap(v)),cardinal=degrees%90===0?direction(degrees):null;
       const major=degrees%20===0||!!cardinal;
-      scaleTick(x,g.hy,0,-1,major,!!cardinal,labelEmphasis(v-raw,5));
+      scaleTick(x,g.hy,0,-1,major,!!cardinal,labelEmphasis(v-raw,minor));
       if(major&&(cardinal||(degrees%90!==10&&degrees%90!==80))){
         const label=cardinal||degrees,baseSize=20,amount=labelEmphasis(v-raw,20);
-        const size=baseSize+(selectedLabel.size-baseSize)*amount;
-        ctx.font=`${selectedLabel.weight} ${size}px ${hudFont}`;
-        const halfWidth=ctx.measureText(String(label)).width/2;
+        const size=baseSize+(selectedLabelSize-baseSize)*amount;
+        const halfWidth=textWidth(label,size)/2;
         const opacity=visibility(labelHalf-Math.abs(x-g.cx)-halfWidth);
-        if(opacity>0){ctx.save();ctx.globalAlpha*=opacity;scaleLabel(label,x,g.hy-28,amount,baseSize,cardinal?'500':'normal');ctx.restore();}
+        if(opacity>0){ctx.save();ctx.globalAlpha*=opacity;scaleLabel(label,x,g.hy-28,amount,baseSize);ctx.restore();}
       }
     }
     ink('primary');
-    text(direction(leftCardinal),left,g.hy-28,'left',20,'500');
-    text(direction(rightCardinal),right,g.hy-28,'right',20,'500');
+    text(direction(leftCardinal),left,g.hy-28,'left',20);
+    text(direction(rightCardinal),right,g.hy-28,'right',20);
     indexTriangle(g.cx,g.hy+5,0,-1);
     ctx.restore();
   }
@@ -219,31 +303,32 @@
     const draw=ladderCtx,w=g.clipRight-g.clipLeft,h=g.clipBottom-g.clipTop;
     draw.setTransform(1,0,0,1,0,0);draw.clearRect(0,0,ladderLayer.width,ladderLayer.height);
     draw.setTransform(density,0,0,density,-g.clipLeft*density,-g.clipTop*density);
-    draw.lineJoin='round';draw.lineCap='butt';draw.shadowColor=palette.primary;draw.shadowBlur=glowControl.checked ? 0.9*density : 0;
+    draw.lineJoin='round';draw.lineCap='round';draw.shadowColor=palette.primary;draw.shadowBlur=glowControl.checked ? 0.9*density : 0;
     const angle=-shown.roll*Math.PI/180,cs=Math.cos(angle),sn=Math.sin(angle);
     draw.save();draw.translate(g.cx,g.cy);draw.rotate(angle);
     const readableLabels=[];
     function labelVisible(value,x,y,align){
-      draw.font=`500 20px ${hudFont}`;
-      draw.textAlign=align;draw.textBaseline='middle';
-      const metrics=draw.measureText(String(value)),margin=1;
-      const left=x-metrics.actualBoundingBoxLeft-margin,right=x+metrics.actualBoundingBoxRight+margin;
-      const top=y-metrics.actualBoundingBoxAscent-margin,bottom=y+metrics.actualBoundingBoxDescent+margin;
-      for(const [px,py] of [[left,top],[right,top],[right,bottom],[left,bottom]]){
-        const sx=g.cx+cs*px-sn*py,sy=g.cy+sn*px+cs*py;
-        if(sx<g.clipLeft+1||sx>g.clipRight-1||sy<g.clipTop+1||sy>g.clipBottom-1)return false;
-      }
-      return true;
+      const size=20,scale=size/font.size,left=textLeft(value,x,align,size),top=y-font.digitCenterY*scale;
+      return [...String(value)].every((character,i)=>{
+        const glyph=font.chars.indexOf(character);if(glyph<0)return true;
+        const [l,t,r,b]=font.bounds[glyph];if(r<0)return true;
+        const a=left+(i*font.advance+l-1)*scale,z=left+(i*font.advance+r+1)*scale;
+        const u=top+(t-1)*scale,v=top+(b+1)*scale;
+        return [[a,u],[z,u],[z,v],[a,v]].every(([px,py])=>{
+          const sx=g.cx+cs*px-sn*py,sy=g.cy+sn*px+cs*py;
+          return sx>=g.clipLeft+1&&sx<=g.clipRight-1&&sy>=g.clipTop+1&&sy<=g.clipBottom-1;
+        });
+      });
     }
-    for(let p=-90;p<=90;p+=5){
-      const y=(shown.pitch-p)*12;if(Math.abs(y)>260)continue;
-      const major=p%10===0,half=major?g.pitchHalf:48;
-      ink(p===0?'primary':'secondary',1.5,draw);
-      draw.setLineDash(p<0?[8,5]:[]);draw.lineDashOffset=p<0?4-half:0;
-      line([[-half,y],[half,y]],draw);draw.setLineDash([]);draw.lineDashOffset=0;
+    for(let p=-90;p<=90;p+=10){
+      const y=(shown.pitch-p)*8;if(Math.abs(y)>260)continue;
+      const major=p%20===0,half=major?76:46;
+      ink(p===0?'primary':'pitch',p===0?5:major?4:3.2,draw);
+      draw.setLineDash(p<0?[12,8]:[]);
+      line([[-half,y],[half,y]],draw);draw.setLineDash([]);
       const hook=p<0?-6:6;
       line([[-half,y],[-half,y+hook]],draw);line([[half,y],[half,y+hook]],draw);
-      for(const [x,align] of [[-half-4,'right'],[half+4,'left']]){
+      for(const [x,align] of [[-half-5,'right'],[half+5,'left']]){
         if(labelVisible(p,x,y,align))readableLabels.push([p,x,y,align]);
       }
       draw.globalAlpha=1;
@@ -253,15 +338,16 @@
     // Only the lines fade at the clipping boundary; complete digits stay crisp.
     draw.setTransform(density,0,0,density,-g.clipLeft*density,-g.clipTop*density);
     draw.save();draw.translate(g.cx,g.cy);draw.rotate(angle);ink('primary',1.5,draw);draw.shadowBlur=0;
-    for(const [p,x,y,align] of readableLabels)text(p,x,y,align,20,'500',draw);
+    for(const [p,x,y,align] of readableLabels)text(p,x,y,align,20,draw);
     draw.restore();draw.setTransform(1,0,0,1,0,0);
     ctx.save();ctx.shadowBlur=0;ctx.drawImage(ladderLayer,g.clipLeft,g.clipTop,w,h);ctx.restore();
   }
   function marker(g){
-    ctx.save();ink('primary',1.6);
+    ctx.save();ink('primary',3);
     const ring=14;
     ctx.beginPath();ctx.arc(g.cx,g.cy,ring,0,Math.PI*2);ctx.stroke();
     ctx.beginPath();ctx.arc(g.cx,g.cy,7.5,0,Math.PI*2);ctx.stroke();
+    ink('primary',3.2);
     line([[g.cx-38,g.cy],[g.cx-ring,g.cy]]);line([[g.cx+ring,g.cy],[g.cx+38,g.cy]]);line([[g.cx,g.cy-ring],[g.cx,g.cy-28]]);
     ctx.restore();
   }
@@ -270,9 +356,9 @@
     const radius=g.rollRadius,cy=g.rollCy,labelGap=g.rollLabelGap;
     const roll=clamp(shown.roll,-60,60);
     const point=(degrees,r)=>{const a=degrees*Math.PI/180;return [g.cx+Math.sin(a)*r,cy+Math.cos(a)*r];};
-    for(let value=-60;value<=60;value+=10){
+    for(let value=-60;value<=60;value+=15){
       const major=value%30===0,angle=value*Math.PI/180,[tickX,tickY]=point(value,radius);
-      scaleTick(tickX,tickY,-Math.sin(angle),-Math.cos(angle),major,false,labelEmphasis(value-roll,10));
+      scaleTick(tickX,tickY,-Math.sin(angle),-Math.cos(angle),major,false,labelEmphasis(value-roll,15));
       if(major){
         const [x,y]=point(value,radius+labelGap);
         scaleLabel(value>0?'+'+value:value,x,y,labelEmphasis(value-roll,30),20);
@@ -299,6 +385,7 @@
     });ctx.restore();
   }
   function paint(){
+    if(canvas.hidden)return;
     const g=geometry();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.setTransform(density,0,0,density,0,0);ctx.save();
     ctx.beginPath();ctx.arc(233,233,233,0,Math.PI*2);ctx.clip();
     ctx.fillStyle='#000';ctx.fillRect(0,0,g.w,g.h);ink();ctx.lineJoin='round';ctx.lineCap='butt';
@@ -315,7 +402,7 @@
     canvas.setAttribute('aria-label',`HUD 模拟：空速 ${Math.round(target.speed)} 千米每小时，高度 ${Math.round(target.altitude)} 米，航向 ${Math.round(wrap(target.heading))%360} 度，俯仰 ${Math.round(target.pitch)} 度，横滚 ${Math.round(target.roll)} 度，升降率 ${target.climb.toFixed(1)} 米每秒`);
   }
   function stop(){demo=false;demoButton.setAttribute('aria-pressed','false');demoButton.textContent='开始自动演示';status.textContent='手动预览';}
-  function queue(){if(!frame&&!document.hidden)frame=requestAnimationFrame(tick);}
+  function queue(){if(!frame&&!document.hidden&&!canvas.hidden)frame=requestAnimationFrame(tick);}
   function tick(now){
     frame=0;
     if(!lastTime){previewFrames=0;previewSince=now;previewFps=-1;}
@@ -330,17 +417,19 @@
     paint();if(demo||moving||counterMoving)queue();else lastTime=0;
   }
   function setValue(c,value){if(!Number.isFinite(value)){sync();return;}stop();target[c.key]=Math.round(clamp(value,c.min,c.max)/c.step)*c.step;sync();queue();}
-  function resize(){const g=geometry(),bounds=canvas.getBoundingClientRect();density=Math.max(1,Math.min(4,bounds.width*(devicePixelRatio||1)/g.w));canvas.width=Math.round(g.w*density);canvas.height=Math.round(g.h*density);prepareLadderMask(g);paint();}
+  function resize(){if(canvas.hidden)return;const g=geometry(),bounds=canvas.getBoundingClientRect();density=Math.max(1,Math.min(4,bounds.width*(devicePixelRatio||1)/g.w));canvas.width=Math.round(g.w*density);canvas.height=Math.round(g.h*density);prepareLadderMask(g);paint();}
   function preset(name){stop();const presets={level:{...defaults,pitch:0,roll:0,climb:0},climb:{...defaults,speed:92,pitch:15,climb:5},turn:{...defaults,heading:210,pitch:3,roll:30,climb:0}};target={...presets[name]};sync();queue();}
   demoButton.addEventListener('click',()=>{if(demo){stop();return;}demo=true;demoTime=0;origin={...shown};target={...shown};lastTime=0;demoButton.setAttribute('aria-pressed','true');demoButton.textContent='暂停自动演示';status.textContent='自动演示中';queue();});
   document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>preset(button.dataset.preset)));
   ['glow','declutter'].forEach(id=>document.querySelector('#'+id).addEventListener('change',paint));
   document.querySelector('#reset').addEventListener('click',()=>{stop();target={...defaults};shown={...defaults};resetCounters();sync();paint();});
-  document.querySelector('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await screen.requestFullscreen();}catch{status.textContent='浏览器未允许全屏，请使用窗口放大预览';}});
-  document.addEventListener('fullscreenchange',()=>{document.querySelector('#fullscreen').textContent=document.fullscreenElement?'退出全屏':'全屏表盘';resize();});
   document.querySelector('#save').addEventListener('click',()=>{const g=geometry(),out=document.createElement('canvas');out.width=g.w;out.height=g.h;out.getContext('2d').drawImage(canvas,0,0,g.w,g.h);out.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='hud-466-round.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;lastTime=0;}else if(demo||config.some(c=>shown[c.key]!==target[c.key]))queue();});
-  new ResizeObserver(resize).observe(screen);sync();resize();
+  canvas.addEventListener('dial-visibility',()=>{
+    cancelAnimationFrame(frame);frame=0;lastTime=0;
+    if(!canvas.hidden){resize();queue();}
+  });
+  new ResizeObserver(resize).observe(canvas);sync();resize();
 })();
 </script>
 </body>

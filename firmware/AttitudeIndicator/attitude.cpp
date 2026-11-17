@@ -65,7 +65,8 @@ float AttitudeFilter::roll() const {
   return Degrees*std::atan2(2*(q[0]*q[1]+q[2]*q[3]),1-2*(q[1]*q[1]+q[2]*q[2]));
 }
 void StationaryCalibration::reset() {
-  count_=0;gyroMean_={0,0,0};accelMean_={0,0,0};first_={0,0,0};
+  count_=pending_=0;gyroMean_={0,0,0};accelMean_={0,0,0};first_={0,0,0};
+  gyroSum_=accelSum_={0,0,0};
 }
 bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   const float n=norm(a);
@@ -74,7 +75,25 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   // from variation around its running mean (all rates below are radians/s).
   constexpr float MaxRawRate=0.08726646f; // 5 deg/s
   constexpr float MaxRateChange=0.01308997f; // 0.75 deg/s
-  if(!finite(a)||!finite(w)||n<0.93f||n>1.07f||norm(w)>MaxRawRate) {reset();return false;}
+  // Use the same gravity gate as fusion. This board reads about 0.91 g when
+  // supported on some edges; the separate variation checks still reject motion.
+  if(!finite(a)||!finite(w)||n<=0.85f||n>=1.15f||norm(w)>MaxRawRate) {reset();return false;}
+  if(count_>=RequiredSamples)return true;
+  if(count_>0){
+    const Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
+    if(norm(delta)>.075f){reset();return false;}
+  }
+  // At 200 Hz a block spans 20 ms. Compare its mean with the stationary
+  // reference so isolated sensor jitter cannot restart a two-second wait.
+  // Instantaneous saturation, gravity and large motion checks still apply.
+  constexpr unsigned Block=4;
+  static_assert(RequiredSamples%Block==0,"calibration must use full blocks");
+  gyroSum_={gyroSum_.x+w.x,gyroSum_.y+w.y,gyroSum_.z+w.z};
+  accelSum_={accelSum_.x+a.x,accelSum_.y+a.y,accelSum_.z+a.z};
+  if(++pending_<Block)return false;
+  w={gyroSum_.x/Block,gyroSum_.y/Block,gyroSum_.z/Block};
+  a={accelSum_.x/Block,accelSum_.y/Block,accelSum_.z/Block};
+  gyroSum_=accelSum_={0,0,0};pending_=0;
   if(count_>0){
     Vec3 rateChange{w.x-gyroMean_.x,w.y-gyroMean_.y,w.z-gyroMean_.z};
     if(norm(rateChange)>MaxRateChange){reset();return false;}
@@ -82,9 +101,8 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   if(count_==0)first_=a;
   Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
   if(norm(delta)>0.025f) {reset();return false;}
-  if(count_>=RequiredSamples)return true;
-  ++count_;
-  const float weight=1.0f/count_;
+  count_+=Block;
+  const float weight=float(Block)/count_;
   gyroMean_.x+=(w.x-gyroMean_.x)*weight;
   gyroMean_.y+=(w.y-gyroMean_.y)*weight;
   gyroMean_.z+=(w.z-gyroMean_.z)*weight;

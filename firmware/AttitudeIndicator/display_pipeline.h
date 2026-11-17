@@ -7,12 +7,15 @@
 #include "altimeter_renderer.h"
 #include "hud_renderer.h"
 #include "panel_sync.h"
+#include "instrument_settings.h"
 #include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 namespace instrument {
 constexpr int DisplayBandRows=60;
-constexpr unsigned DisplayBufferCount=3;
+constexpr int RotatedBandRows=28;
+constexpr size_t DisplayHalfBandPixels=ScreenSize*DisplayBandRows/2;
+constexpr unsigned DisplayBufferCount=2;
 struct DisplayJob {
   unsigned slot=0;
   uint32_t generation=0,sequence=0,renderUs=0,stages[4]={};
@@ -22,16 +25,21 @@ struct DisplayJob {
   Snapshot state;
   bool demo=false,attitude=false,airspeed=false,altimeter=false,hud=false;
   float speedKmh=0,altitudeM=0;
+  int fpsTenths=-1;
+  DisplayOptions options;
+  SettingsPage menu=SettingsPage::Closed;
   HudInput hudInput;
   AltimeterDamage altitudeDamage;
   AirspeedRect patch={0,0,466,466};
   bool fullAirspeed=false;
+  bool stagedRound=false;
 };
 struct DisplayStats {
   float fps=-1;
   int32_t scanMinUs=0,scanMaxUs=0;
   uint32_t renderUs=0,transferUs=0,intervalUs=0,maxGapUs=0,setupUs=0,stages[4]={};
   uint32_t tePeriodUs=0,teMisses=0,tePulses=0,patchPixels=0;
+  uint32_t roundScanCrosses=0,hudScanCrosses=0;
   unsigned stackFree=0;
   unsigned backgroundStackFree=0;
 };
@@ -43,6 +51,10 @@ class DisplayPipeline {
   DisplayJob parallelBackgroundDone(){DisplayJob job;xQueueReceive(parallelDone_,&job,portMAX_DELAY);return job;}
   void submit(const DisplayJob& job){xQueueSend(jobs_,&job,portMAX_DELAY);}
   uint16_t* airspeedPixels(unsigned slot){return airFrames_[slot];}
+  void renderHudRegion(const DisplayJob&,AirspeedRect,size_t offset,bool background);
+  uint32_t renderHudRegions(const DisplayJob&,bool background);
+  uint32_t renderRoundRegions(const DisplayJob&,float pitch,float roll,bool background);
+  uint32_t workerStages[2][3]={};
   DisplayStats stats(){DisplayStats s;xQueuePeek(stats_,&s,0);return s;}
   void invalidate(){generation_.fetch_add(1,std::memory_order_relaxed);}
   uint32_t generation()const{return generation_.load(std::memory_order_relaxed);}
@@ -53,8 +65,10 @@ class DisplayPipeline {
   void runBackground();
   void run();
   void presentDial(const DisplayJob&,DisplayStats&);
-  void text(const char* message,int y,int size,uint16_t color);
-  void status(const Snapshot& state);
+  void presentMenu(const DisplayJob&);
+  void presentStatus(const DisplayJob&,const Snapshot&);
+  void drawStatus(Arduino_GFX&,const Snapshot&,bool showFps);
+  void presentCanvas(unsigned slot);
   PanelDisplay* display_=nullptr;
   FastPanel* panel_=nullptr;
   Renderer* renderer_=nullptr;
@@ -65,6 +79,7 @@ class DisplayPipeline {
   QueueHandle_t free_=nullptr,jobs_=nullptr,stats_=nullptr,snapshots_=nullptr;
   QueueHandle_t requests_=nullptr,ready_=nullptr,parallelDone_=nullptr;
   std::atomic<uint32_t> generation_{0};
+  std::atomic<unsigned> roundRegionCursor_{0};
   PanelSync sync_;
   uint16_t* airFrames_[DisplayBufferCount]={};
   FpsOverlay* airOverlay_=nullptr;

@@ -1,6 +1,7 @@
 #include "../firmware/AttitudeIndicator/attitude.h"
 #include <cmath>
 #include <cstdio>
+#include <initializer_list>
 #include <limits>
 using namespace instrument;
 static int failures=0;
@@ -46,9 +47,19 @@ int main(){
   c.reset();
   for(unsigned i=0;i<400;++i)ready=c.add({0,0,-1},{0.004f,0.026f,0.006f});
   check(ready&&near(c.bias().y,0.026f,0.00001f),"measured 1.55 deg/s stationary QMI bias can be calibrated");
+  // The vertical bench fixture measured about 0.91g on this board.
+  for(const Vec3 axis:{Vec3{.910f,0,-.025f},Vec3{-.910f,0,.025f},Vec3{0,.910f,-.025f},Vec3{0,-.910f,.025f}}){
+    c.reset();
+    for(unsigned i=0;i<400;++i)ready=c.add(axis,{.004f,.026f,.006f});
+    check(ready,"vertical stationary calibration accepts the measured 0.91g scale");
+  }
+  c.reset();c.add({0,0,.8f},{0,0,0});
+  check(c.count()==0,"calibration rejects acceleration below the gravity window");
+  for(unsigned i=0;i<400;++i)ready=c.add({0,0,-.91f},{0,.026f+(i%2?.018f:-.018f),0});
+  check(ready&&near(c.bias().y,.026f,.0001f),"short gyro fluctuations average out on a stationary fixture");
   c.reset();
   for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0.026f,0});
-  c.add({0,0,-1},{0,0.049f,0});
+  for(int i=0;i<4;++i)c.add({0,0,-1},{0,0.049f,0});
   check(c.count()==0,"changing angular velocity rejects motion below absolute bias ceiling");
   c.reset();
   for(int i=0;i<200;++i)c.add({0,0,-1},{0,0,0});

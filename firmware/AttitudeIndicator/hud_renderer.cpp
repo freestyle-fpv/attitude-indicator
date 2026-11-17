@@ -4,7 +4,7 @@
 #endif
 #include "hud_renderer.h"
 #include "hud_readout.h"
-#include "hud_font.h"
+#include "hud_font_sampling.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -32,7 +32,7 @@ struct Clip {float l=0,t=0,r=466,b=466;};
 Clip area(float l,float t,float r,float b){Clip c;c.l=l;c.t=t;c.r=r;c.b=b;return c;}
 struct Command {
   enum Kind {Line,Ring,Text,Window} kind=Line;
-  float x=0,y=0,x2=0,y2=0,size=1.15f,weight=0,cs=1,sn=0;
+  float x=0,y=0,x2=0,y2=0,size=1.15f,cs=1,sn=0;
   Clip clip;
   uint8_t green=198;
   bool fade=false,shade=false;
@@ -51,11 +51,11 @@ struct Builder {
     c=Command();c.kind=kind;c.clip=clip;c.fade=fade;c.shade=shade;return c;
   }
   void line(float x,float y,float xx,float yy,float width=1.5f,int green=198){auto& c=add(Command::Line);c.x=x;c.y=y;c.x2=xx;c.y2=yy;c.size=width;c.green=green;}
-  void ring(float x,float y,float radius){auto& c=add(Command::Ring);c.x=x;c.y=y;c.x2=radius;c.size=1.6f;c.green=255;}
-  void text(const char* value,float x,float y,float size,int green=198,float weight=0,float angle=0){auto& c=add(Command::Text);c.x=x;c.y=y;c.size=size;c.green=green;c.weight=weight;c.cs=std::cos(angle);c.sn=std::sin(angle);std::snprintf(c.str,sizeof(c.str),"%s",value);}
-  void number(int value,float x,float y,float size=11,int green=198,float weight=0,float angle=0,bool sign=false){char s[16];std::snprintf(s,sizeof(s),sign&&value>0?"+%d":"%d",value);text(s,x,y,size,green,weight,angle);}
-  void tick(float x,float y,float dx,float dy,bool major,bool bright=false,float amount=0){float len=major?17:9;line(x,y,x+dx*len,y+dy*len,1.5f+1.7f*amount,bright?255:int((major?198:140)+(255-(major?198:140))*amount));}
-  void triangle(float x,float y,float dx,float dy){float bx=x-dx*12,by=y-dy*12;line(x,y,bx-dy*6,by+dx*6,1.6f,255);line(bx-dy*6,by+dx*6,bx+dy*6,by-dx*6,1.6f,255);line(bx+dy*6,by-dx*6,x,y,1.6f,255);}
+  void ring(float x,float y,float radius){auto& c=add(Command::Ring);c.x=x;c.y=y;c.x2=radius;c.size=3.f;c.green=255;}
+  void text(const char* value,float x,float y,float size,int green=198,float angle=0){auto& c=add(Command::Text);c.x=x;c.y=y;c.size=size;c.green=green;c.cs=std::cos(angle);c.sn=std::sin(angle);std::snprintf(c.str,sizeof(c.str),"%s",value);}
+  void number(int value,float x,float y,float size=11,int green=198,float angle=0,bool sign=false){char s[16];std::snprintf(s,sizeof(s),sign&&value>0?"+%d":"%d",value);text(s,x,y,size,green,angle);}
+  void tick(float x,float y,float dx,float dy,bool major,bool bright=false,float amount=0){const float len=major?17:9,width=major?3.4f:2.5f;const int green=major?224:180;line(x,y,x+dx*len,y+dy*len,width+1.3f*amount,bright?255:int(green+(255-green)*amount));}
+  void triangle(float x,float y,float dx,float dy){float bx=x-dx*12,by=y-dy*12;line(x,y,bx-dy*6,by+dx*6,3.2f,255);line(bx-dy*6,by+dx*6,bx+dy*6,by-dx*6,3.2f,255);line(bx+dy*6,by-dx*6,x,y,3.2f,255);}
 };
 // Matches the HTML footprint, including the largest bold endpoint label.
 constexpr float Half=104.f,LabelGap=23.f;
@@ -65,15 +65,15 @@ void counter(Builder& b,const HudReadout& value,float x,float y,int digits){
   const float progress=value.progress(),direction=value.to>=value.from?1:-1;
   b.clip=area(x-33,y-16,x+33,y+16);b.shade=true;
   const auto glyphs=value.glyphs(digits);
-  b.text(glyphs.fixed,x,y,26,255,.4f);
-  if(value.moving){b.text(glyphs.outgoing,x,y+direction*progress*34,26,255,.4f);
-    b.text(glyphs.incoming,x,y-direction*(1-progress)*34,26,255,.4f);}
+  b.text(glyphs.fixed,x,y,26,255);
+  if(value.moving){b.text(glyphs.outgoing,x,y+direction*progress*34,26,255);
+    b.text(glyphs.incoming,x,y-direction*(1-progress)*34,26,255);}
   b.clip=Clip();b.shade=false;
 }
 void tape(Builder& b,const HudReadout& readout,bool left,float value,float pitch){
-  float x=left?85:381,sign=left?-1:1,minor=5,max=left?200:3000;
-  float scale=pitch/minor;
-  b.line(x+sign*34,122,x,122);b.line(x,122,x,346);b.line(x,346,x+sign*34,346);
+  float x=left?85:381,sign=left?-1:1,minor=10,max=left?200:3000;
+  float scale=pitch/5;
+  b.line(x+sign*34,122,x,122,2.6f);b.line(x,122,x,346,2.6f);b.line(x,346,x+sign*34,346,2.6f);
   const int lo=std::max(0,int(std::ceil((value-(346-234)/scale)/minor))*int(minor));
   for(int v=lo;v<=std::min(max,value+(234-122)/scale);v+=int(minor)){
     float y=234-(v-value)*scale;bool major=v%20==0;
@@ -86,32 +86,32 @@ void tape(Builder& b,const HudReadout& readout,bool left,float value,float pitch
       const float edge=std::min(std::min(y-137,331-y),std::fabs(y-234)-33);
       const float circleMargin=(231*231-farX*farX-farY*farY)/(2*231);
       const float opacity=visibility(edge)*visibility(circleMargin,14);
-      if(opacity>0)b.text(s,center,y,18,int(255*opacity+.5f),.35f);
+      if(opacity>0)b.text(s,center,y,18,int(255*opacity+.5f));
     }
   }
   const float inner=x+sign*9,outer=inner+sign*72;
   auto& c=b.add(Command::Window);c.x=x;c.y=234;c.x2=outer;c.y2=sign;
   const float px[]={x,inner,outer-sign*2,outer,outer,outer-sign*2,inner,x};
   const float py[]={234,214,214,216,252,254,254,234};
-  for(int i=0;i<7;++i)b.line(px[i],py[i],px[i+1],py[i+1],1.6f,255);
+  for(int i=0;i<7;++i)b.line(px[i],py[i],px[i+1],py[i+1],3.2f,255);
   counter(b,readout,(inner+outer)/2,234,left?3:4);
-  b.text(left?"KM/H":"M",x+sign*17,104,14,255,.25f);
+  b.text(left?"KM/H":"M",x+sign*17,104,14,255);
 }
 void heading(Builder& b,float raw,float pitch){
   float spacing=pitch/5,labelHalf=Half-24,extent=Half/spacing;
-  for(int v=int(std::floor((raw-extent)/5))*5;v<=raw+extent;v+=5){
+  for(int v=int(std::floor((raw-extent)/10))*10;v<=raw+extent;v+=10){
     float x=233+(v-raw)*spacing;if(x<233-Half+1||x>233+Half-1)continue;
-    int degrees=int(wrap(float(v)));bool card=degrees%90==0,major=degrees%20==0||card;b.tick(x,72,0,-1,major,card,emphasis(v-raw,5));
+    int degrees=int(wrap(float(v)));bool card=degrees%90==0,major=degrees%20==0||card;b.tick(x,72,0,-1,major,card,emphasis(v-raw,10));
     if(major&&(card||(degrees%90!=10&&degrees%90!=80))){char label[8];if(card){label[0]=cardinal(degrees);label[1]=0;}else std::snprintf(label,sizeof(label),"%d",degrees);
       float amount=emphasis(v-raw,20),base=20,size=base+(22-base)*amount;
       float half=std::strlen(label)*hudfont::Advance*size/hudfont::Size/2;
       const float opacity=visibility(labelHalf-std::fabs(x-233)-half);
-      if(opacity>0)b.text(label,x,44,size,int(255*opacity+.5f),.35f+.65f*amount);
+      if(opacity>0)b.text(label,x,44,size,int((236+19*amount)*opacity+.5f));
     }
   }
   char s[2]={cardinal(std::floor((raw-labelHalf/spacing)/90)*90),0};
-  b.text(s,233-Half+hudfont::Advance*20/hudfont::Size/2,44,20,255,.35f);
-  s[0]=cardinal(std::ceil((raw+labelHalf/spacing)/90)*90);b.text(s,233+Half-hudfont::Advance*20/hudfont::Size/2,44,20,255,.35f);
+  b.text(s,233-Half+hudfont::Advance*20/hudfont::Size/2,44,20,255);
+  s[0]=cardinal(std::ceil((raw+labelHalf/spacing)/90)*90);b.text(s,233+Half-hudfont::Advance*20/hudfont::Size/2,44,20,255);
   b.triangle(233,77,0,-1);
 }
 // Tight bitmap ink bounds, including bilinear sampling support. Precomputed;
@@ -131,40 +131,36 @@ bool textFits(const char* s,float x,float y,float size,float cs,float sn,const C
 void ladder(Builder& b,float pitch,float roll){
   const float angle=-roll*Pi/180,cs=std::cos(angle),sn=std::sin(angle);
   b.clip=area(102,114,364,350);b.fade=true;
-  auto line=[&](float x,float y,float xx,float yy,int green){b.line(233+cs*x-sn*y,234+sn*x+cs*y,233+cs*xx-sn*yy,234+sn*xx+cs*yy,1.5f,green);};
-  for(int p=-90;p<=90;p+=5){float y=(pitch-p)*12;if(std::fabs(y)>260)continue;
-    const bool major=p%10==0;const float half=major?80:48;int green=p==0?255:198;
-    if(p>=0)line(-half,y,half,y,green);
-    else for(float x=-4-13*std::ceil(half/13);x<half;x+=13){const float a=std::max(-half,x),z=std::min(half,x+8);if(z>a)line(a,y,z,y,green);}
+  auto line=[&](float x,float y,float xx,float yy,float width,int green){
+    b.line(233+cs*x-sn*y,234+sn*x+cs*y,233+cs*xx-sn*yy,234+sn*xx+cs*yy,width,green);
+  };
+  for(int p=-90;p<=90;p+=10){
+    const float y=(pitch-p)*8;
+    if(std::fabs(y)>260)continue;
+    const bool major=p%20==0;
+    const float half=major?76.f:46.f,width=p==0?5.f:(major?4.f:3.2f);
+    const int green=p==0?255:236;
+    if(p>=0)line(-half,y,half,y,width,green);
+    else for(float x=-half;x<half;x+=20)line(x,y,std::min(half,x+12),y,width,green);
     const float hook=p<0?-6:6;
-    line(-half,y,-half,y+hook,green);line(half,y,half,y+hook,green);
+    line(-half,y,-half,y+hook,width,green);line(half,y,half,y+hook,width,green);
     for(int side:{-1,1}){
       char s[8];std::snprintf(s,sizeof(s),"%d",p);float width=std::strlen(s)*hudfont::Advance*20/hudfont::Size;
-      float x=side*(half+4+width/2),sx=233+cs*x-sn*y,sy=234+sn*x+cs*y;
-      if(textFits(s,sx,sy,20,cs,sn,b.clip)){b.fade=false;b.text(s,sx,sy,20,255,.35f,angle);b.fade=true;}
+      float x=side*(half+5+width/2),sx=233+cs*x-sn*y,sy=234+sn*x+cs*y;
+      if(textFits(s,sx,sy,20,cs,sn,b.clip)){b.fade=false;b.text(s,sx,sy,20,255,angle);b.fade=true;}
     }
   }
   b.clip=Clip();b.fade=false;
 }
 void bank(Builder& b,float roll,bool valid,float r){
   float cy=420-r;
-  for(int v=-60;v<=60;v+=10){float a=v*Pi/180,s=std::sin(a),c=std::cos(a);bool major=v%30==0;
-    b.tick(233+s*r,cy+c*r,-s,-c,major,false,valid?emphasis(v-roll,10):0);
-    if(major){float amt=valid?emphasis(v-roll,30):0;b.number(v,233+s*(r+LabelGap),cy+c*(r+LabelGap),20+2*amt,255,.35f+.65f*amt,0,true);}
+  for(int v=-60;v<=60;v+=15){float a=v*Pi/180,s=std::sin(a),c=std::cos(a);bool major=v%30==0;
+    b.tick(233+s*r,cy+c*r,-s,-c,major,false,valid?emphasis(v-roll,15):0);
+    if(major){float amt=valid?emphasis(v-roll,30):0;b.number(v,233+s*(r+LabelGap),cy+c*(r+LabelGap),20+2*amt,int(236+19*amt),0,true);}
   }
   if(valid){float a=roll*Pi/180,s=std::sin(a),c=std::cos(a);b.triangle(233+s*(r-25),cy+c*(r-25),s,c);}
 }
 int glyphIndex(char c){for(unsigned i=0;i<sizeof(hudfont::chars)-1;++i)if(hudfont::chars[i]==c)return int(i);return -1;}
-// Both font weights share coordinates: validate/truncate and interpolate once.
-inline __attribute__((always_inline)) float sampleCell(const uint8_t* regular,const uint8_t* bold,int offset,float fx,float fy,float weight){
-  auto sample=[&](const uint8_t* glyph){const auto* p=glyph+offset;
-    return (p[0]*(1-fx)+p[1]*fx)*(1-fy)+(p[hudfont::Width]*(1-fx)+p[hudfont::Width+1]*fx)*fy;};
-  float alpha=0;if(weight<1)alpha+=sample(regular)*(1-weight);if(weight>0)alpha+=sample(bold)*weight;return alpha;
-}
-inline __attribute__((always_inline)) float sampleWeights(const uint8_t* regular,const uint8_t* bold,float x,float y,float weight){
-  if(x<0||y<0||x>=hudfont::Width-1||y>=hudfont::Height-1)return 0;
-  const int ix=int(x),iy=int(y);return sampleCell(regular,bold,iy*hudfont::Width+ix,x-ix,y-iy,weight);
-}
 // Conservative pixel support, reused by dirty coverage and rectangle culling.
 Clip footprint(const Command& c){
   float l=1e6f,t=1e6f,r=-1e6f,b=-1e6f;
@@ -181,20 +177,26 @@ Clip footprint(const Command& c){
   return area(std::max(c.clip.l,std::floor(l)),std::max(c.clip.t,std::floor(t)),std::min(c.clip.r,std::ceil(r)+1),std::min(c.clip.b,std::ceil(b)+1));
 }
 bool equal(const Command& a,const Command& b){
-  return a.kind==b.kind&&a.x==b.x&&a.y==b.y&&a.x2==b.x2&&a.y2==b.y2&&a.size==b.size&&a.weight==b.weight&&a.cs==b.cs&&a.sn==b.sn&&a.green==b.green&&a.fade==b.fade&&a.shade==b.shade&&a.clip.l==b.clip.l&&a.clip.t==b.clip.t&&a.clip.r==b.clip.r&&a.clip.b==b.clip.b&&!std::strcmp(a.str,b.str);
+  return a.kind==b.kind&&a.x==b.x&&a.y==b.y&&a.x2==b.x2&&a.y2==b.y2&&a.size==b.size&&a.cs==b.cs&&a.sn==b.sn&&a.green==b.green&&a.fade==b.fade&&a.shade==b.shade&&a.clip.l==b.clip.l&&a.clip.t==b.clip.t&&a.clip.r==b.clip.r&&a.clip.b==b.clip.b&&!std::strcmp(a.str,b.str);
 }
 struct DirtyTiles {
   static constexpr int Tile=16,Rows=30;
   uint32_t rows[Rows]={};
-  void mark(const Clip& q,const Command* command=nullptr){
+  void mark(Clip q,UsbSide side,const Command* command=nullptr){
     if(q.r<=q.l||q.b<=q.t)return;
+    if(side!=UsbSide::Left){
+      const int left=int(std::floor(q.l)),top=int(std::floor(q.t));
+      const auto r=panelRect({left,top,int(std::ceil(q.r))-left,int(std::ceil(q.b))-top},side);
+      q=area(r.x,r.y,r.x+r.width,r.y+r.height);
+    }
     const int x0=std::max(0,int(q.l)/Tile),x1=std::min(Rows-1,int(q.r)/Tile);
     const int y0=std::max(0,int(q.t)/Tile),y1=std::min(Rows-1,int(q.b)/Tile);
     const bool line=command&&command->kind==Command::Line;
     float vx=0,vy=0,inv=0,reach=0;
     if(line){vx=command->x2-command->x;vy=command->y2-command->y;const float length=vx*vx+vy*vy;inv=length>0?1.f/length:0;reach=Tile*.707107f+command->size*.5f+2;}
     for(int y=y0;y<=y1;++y)for(int x=x0;x<=x1;++x){
-      if(line){const float dx=x*Tile+Tile*.5f-command->x,dy=y*Tile+Tile*.5f-command->y;
+      if(line){const auto p=toPanel({x*Tile+Tile/2,y*Tile+Tile/2},inverse(side));
+        const float dx=p.x-command->x,dy=p.y-command->y;
         const float f=bound((dx*vx+dy*vy)*inv,0,1),px=dx-f*vx,py=dy-f*vy;if(px*px+py*py>reach*reach)continue;}
       rows[y]|=uint32_t(1)<<x;
     }
@@ -223,13 +225,13 @@ struct DirtyTiles {
 uint32_t commandHash(const Command& c){
   // No padding participates. Fingerprints only accelerate lookup; equality
   // always confirms a hit, so hash collisions cannot suppress damage.
-  static_assert(offsetof(Command,green)==52&&offsetof(Command,str)==55,"update command fingerprint layout");
+  static_assert(offsetof(Command,green)==48&&offsetof(Command,str)==51,"update command fingerprint layout");
   uint32_t h=2166136261u;const auto* bytes=reinterpret_cast<const uint8_t*>(&c);
-  for(unsigned i=0;i<52;i+=4){uint32_t word;std::memcpy(&word,bytes+i,4);h=(h^word)*16777619u;}
-  for(unsigned i=52;i<71;++i)h=(h^bytes[i])*16777619u;
+  for(unsigned i=0;i<48;i+=4){uint32_t word;std::memcpy(&word,bytes+i,4);h=(h^word)*16777619u;}
+  for(unsigned i=48;i<67;++i)h=(h^bytes[i])*16777619u;
   return h;
 }
-void prepareDamage(List& list,const List* previous){
+void prepareDamage(List& list,const List* previous,UsbSide side,bool showFps){
   const int oldCount=previous?previous->count:0;
   uint16_t table[512]={};bool matched[Capacity]={};
   for(int i=0;i<oldCount;++i){unsigned at=previous->hashes[i]&511;while(table[at])at=(at+1)&511;table[at]=i+1;}
@@ -240,23 +242,38 @@ void prepareDamage(List& list,const List* previous){
     if(found>=0){matched[found]=true;list.bounds[i]=previous->bounds[found];
       // If a future builder changes paint order, redraw every inversion's
       // footprint as well: equal commands can still composite differently.
-      if(found<lastMatched)tiles.mark(list.bounds[i],&list.items[i]);lastMatched=std::max(lastMatched,found);
+      if(found<lastMatched)tiles.mark(list.bounds[i],side,&list.items[i]);lastMatched=std::max(lastMatched,found);
     }
-    else{list.bounds[i]=footprint(list.items[i]);tiles.mark(list.bounds[i],&list.items[i]);}
+    else{list.bounds[i]=footprint(list.items[i]);tiles.mark(list.bounds[i],side,&list.items[i]);}
   }
-  for(int i=0;i<oldCount;++i)if(!matched[i])tiles.mark(previous->bounds[i],&previous->items[i]);
-  tiles.mark(area(181,432,285,454));list.damage=tiles.pack();
+  for(int i=0;i<oldCount;++i)if(!matched[i])tiles.mark(previous->bounds[i],side,&previous->items[i]);
+  if(showFps)tiles.mark(area(181,432,285,454),side);
+  list.damage=tiles.pack();
 }
 struct Raster {
   uint16_t* pixels;AirspeedRect rect;bool wire;
+  UsbSide side;
+  int index(int x,int y)const{
+    x-=rect.x;y-=rect.y;
+    switch(side){
+      case UsbSide::Top:return (rect.width-1-x)*rect.height+y;
+      case UsbSide::Right:return (rect.height-1-y)*rect.width+rect.width-1-x;
+      case UsbSide::Bottom:return x*rect.height+rect.height-1-y;
+      default:return y*rect.width+x;
+    }
+  }
   void plot(int x,int y,int green,float coverage,const Command& cmd){
     if(x<rect.x||x>=rect.x+rect.width||y<rect.y||y>=rect.y+rect.height||x<cmd.clip.l||x>=cmd.clip.r||y<cmd.clip.t||y>=cmd.clip.b)return;
     if((x-233)*(x-233)+(y-233)*(y-233)>233*233)return;
     if(cmd.fade)coverage*=bound(std::min(std::min(x-cmd.clip.l,cmd.clip.r-x),std::min(y-cmd.clip.t,cmd.clip.b-y))*(1.f/14.f),0,1);
     if(cmd.shade)coverage*=bound(std::min(y-cmd.clip.t,cmd.clip.b-y)*(1.f/5.3f),0,1);
     const int alpha=int(bound(coverage,0,1)*255+.5f);if(!alpha)return;
-    auto& out=pixels[(y-rect.y)*rect.width+x-rect.x];uint16_t old=wire?uint16_t(out<<8|out>>8):out;
-    int value=(((old>>5)&63)*(255-alpha)+(green>>2)*alpha+127)/255;
+    auto& out=pixels[index(x,y)];
+    int value=green>>2;
+    if(alpha<255){
+      const uint16_t old=wire?uint16_t(out<<8|out>>8):out;
+      value=(((old>>5)&63)*(255-alpha)+value*alpha+127)/255;
+    }
     uint16_t color=uint16_t(value<<5);out=wire?uint16_t(color<<8|color>>8):color;
   }
   void HUD_HOT shape(const Command& c);
@@ -272,12 +289,34 @@ void Raster::shape(const Command& c){
     float vx=c.x2-c.x,vy=c.y2-c.y,len=vx*vx+vy*vy;
     const float inverseLength=len>0?1.f/len:0;
     const float edge=c.size*.5f+.5f,outerRing=c.x2+edge,innerRing=std::max(0.f,c.x2-edge);
+    const float opaqueDistance=edge-1;
+    const float opaqueSquared=!c.fade&&!c.shade&&opaqueDistance>=0?opaqueDistance*opaqueDistance:-1;
     // A long tilted line occupies a narrow strip, not its full bounding box.
     // Intersect each row with that strip, keeping an extra pixel of margin
     // for round caps and floating-point rounding. Coverage itself is unchanged.
     const bool narrowRows=c.kind==Command::Line&&std::fabs(vy)>.01f;
     const float slope=narrowRows?vx/vy:0;
     const float reach=(c.size*.5f+.5f)*std::sqrt(1+slope*slope)+1;
+    if(c.kind==Command::Window&&!c.fade&&!c.shade){
+      // These black readout backgrounds overwrite the previous layers.
+      // Fill complete rows once their clipped box is inside the round panel.
+      x0=std::max(x0,int(std::ceil(c.clip.l)));x1=std::min(x1,int(std::ceil(c.clip.r))-1);
+      y0=std::max(y0,int(std::ceil(c.clip.t)));y1=std::min(y1,int(std::ceil(c.clip.b))-1);
+      const int dx=std::max(233-x0,x1-233),dy=std::max(233-y0,y1-233);
+      if(dx*dx+dy*dy<=233*233){
+        for(int y=y0;y<=y1;++y){
+          const float edgeX=c.x+c.y2*9*std::fabs(y-c.y)/20;
+          const int first=c.y2<0?x0:std::max(x0,int(std::ceil(edgeX)));
+          const int last=c.y2<0?std::min(x1,int(std::floor(edgeX))):x1;
+          if(first<=last){
+            if(side==UsbSide::Left)std::memset(pixels+index(first,y),0,(last-first+1)*sizeof(uint16_t));
+            else if(side==UsbSide::Right)std::memset(pixels+index(last,y),0,(last-first+1)*sizeof(uint16_t));
+            else for(int x=first;x<=last;++x)pixels[index(x,y)]=0;
+          }
+        }
+        return;
+      }
+    }
     for(int y=y0;y<=y1;++y){
       int rowLeft=x0,rowRight=x1;
       if(narrowRows){const float center=c.x+(y-c.y)*slope;
@@ -291,7 +330,7 @@ void Raster::shape(const Command& c){
       else if(c.kind==Command::Window){float start=c.x+c.y2*9*std::fabs(y-c.y)/20;bool inside=c.y2<0?x<=start:x>=start;if(inside)plot(x,y,0,1,c);continue;}
       else {float q=len>0?bound(((x-c.x)*vx+(y-c.y)*vy)*inverseLength,0,1):0;float dx=x-c.x-q*vx,dy=y-c.y-q*vy;const float d2=dx*dx+dy*dy;
         if(d2>edge*edge+.01f)continue;
-        a=edge-std::sqrt(d2);}
+        a=d2<=opaqueSquared?1:edge-std::sqrt(d2);}
       if(a>0)plot(x,y,c.green,a,c);
     }}
   }
@@ -299,7 +338,7 @@ void Raster::text(const Command& c){
     const float scale=c.size/hudfont::Size,inverseScale=1.f/scale,adv=hudfont::Advance*scale,total=std::strlen(c.str)*adv;
     for(unsigned i=0;c.str[i];++i){int index=glyphIndex(c.str[i]);if(index<0||c.str[i]==' ')continue;
       float left=-total/2+i*adv-hudfont::OriginX*scale,top=-hudfont::DigitCenterY*scale;
-      // Bounds contain both weights and bilinear support, excluding transparent atlas margins.
+      // Bounds include bilinear support, excluding transparent atlas margins.
       const auto& ink=hudfont::inkBounds[index];if(ink.r<0)continue;
       float boundLeft=left+(ink.l-1)*scale,boundTop=top+(ink.t-1)*scale;
       float right=left+(ink.r+1)*scale,bottom=top+(ink.b+1)*scale;
@@ -308,7 +347,7 @@ void Raster::text(const Command& c){
       if(r<rect.x||l>=rect.x+rect.width||b<rect.y||t>=rect.y+rect.height)continue;
       int x0=std::max(rect.x,int(std::floor(std::max(l,c.clip.l)))),x1=std::min(rect.x+rect.width-1,int(std::ceil(std::min(r,c.clip.r))));
       int y0=std::max(rect.y,int(std::floor(std::max(t,c.clip.t)))),y1=std::min(rect.y+rect.height-1,int(std::ceil(std::min(b,c.clip.b))));
-      const uint8_t* regular=hudfont::glyphs[0][index];const uint8_t* bold=hudfont::glyphs[1][index];
+      const uint8_t* glyph=hudfont::glyphs()[index];
       if(c.cs==1&&c.sn==0&&x1-x0<32){
         // Unrotated text has separable coordinates; reuse the exact same float
         // samples down each column instead of redoing the transform per pixel.
@@ -318,13 +357,13 @@ void Raster::text(const Command& c){
         for(int y=y0;y<=y1;++y){const float v=(y-c.y-top)*inverseScale;
           if(v<0||v>=hudfont::Height-1)continue;const int iy=int(v);const float fy=v-iy;
           for(int x=x0;x<=x1;++x){const int at=x-x0,ix=columns[at];if(ix<0)continue;
-            const float alpha=sampleCell(regular,bold,iy*hudfont::Width+ix,fractions[at],fy,c.weight);
+            const float alpha=hudfont::sampleCell(glyph,iy*hudfont::Width+ix,fractions[at],fy);
             if(alpha>0)plot(x,y,c.green,alpha*(1.f/255.f),c);}
         }
         continue;
       }
       for(int y=y0;y<=y1;++y)for(int x=x0;x<=x1;++x){float dx=x-c.x,dy=y-c.y,u=(c.cs*dx+c.sn*dy-left)*inverseScale,v=(-c.sn*dx+c.cs*dy-top)*inverseScale;
-        float alpha=sampleWeights(regular,bold,u,v,c.weight);
+        float alpha=hudfont::sampleGlyph(glyph,u,v);
         if(alpha>0)plot(x,y,c.green,alpha*(1.f/255.f),c);
       }
     }
@@ -346,6 +385,9 @@ bool HudRenderer::begin(){if(state_)return true;
   if(memory)state_=new(memory) State();return state_!=nullptr;
 }
 bool HudRenderer::prepareFrame(unsigned slot,const HudInput& input){
+  return prepareFrame(slot,input,UsbSide::Left,true);
+}
+bool HudRenderer::prepareFrame(unsigned slot,const HudInput& input,UsbSide side,bool showFps){
   if(!state_||slot>=3)return false;
   auto& list=*state_->spare;list.count=0;list.valid=false;
   float values[2]={bound(safe(input.speedKmh),0,200),bound(safe(input.altitudeM),0,3000)};
@@ -357,15 +399,19 @@ bool HudRenderer::prepareFrame(unsigned slot,const HudInput& input){
   const float trueRoll=std::remainder(safe(input.roll),360.f);
   float roll=bound(trueRoll,-60,60);
   if(valid)ladder(b,bound(input.pitch,-90,90),trueRoll);else b.text("IMU",233,280,12,255);
-  b.ring(233,234,14.f);b.ring(233,234,7.5f);b.line(195,234,219,234,1.6f,255);b.line(247,234,271,234,1.6f,255);b.line(233,220,233,206,1.6f,255);
+  b.ring(233,234,14.f);b.ring(233,234,7.5f);b.line(195,234,219,234,3.2f,255);b.line(247,234,271,234,3.2f,255);b.line(233,220,233,206,3.2f,255);
   bank(b,roll,valid,r);
   char s[12];std::snprintf(s,sizeof(s),"%+.1f",bound(safe(input.climb),-15,15));b.text(s,398,368,14);b.text("V/S",398,382,12);
-  list.valid=list.count<Capacity;prepareDamage(list,state_->previous);std::swap(state_->spare,state_->slots[slot]);state_->previous=state_->slots[slot];return list.valid;
+  list.valid=list.count<Capacity;prepareDamage(list,state_->previous,side,showFps);std::swap(state_->spare,state_->slots[slot]);state_->previous=state_->slots[slot];return list.valid;
 }
 void HudRenderer::renderPrepared(uint16_t* pixels,unsigned slot,AirspeedRect rect)const{
+  renderPreparedPanel(pixels,slot,rect,UsbSide::Left);
+}
+void HudRenderer::renderPreparedPanel(uint16_t* pixels,unsigned slot,AirspeedRect rect,UsbSide side)const{
   if(!pixels||!state_||slot>=3||rect.x<0||rect.y<0||rect.width<=0||rect.height<=0||rect.x>466-rect.width||rect.y>466-rect.height)return;
+  rect=panelRect(rect,inverse(side));
   std::memset(pixels,0,size_t(rect.width)*rect.height*2);const auto& list=*state_->slots[slot];if(!list.valid)return;
-  Raster raster{pixels,rect,wireOrder_};for(int i=0;i<list.count;++i){const auto& c=list.items[i];const auto& q=list.bounds[i];if(q.r<=rect.x||q.l>=rect.x+rect.width||q.b<=rect.y||q.t>=rect.y+rect.height)continue;if(c.kind==Command::Text)raster.text(c);else raster.shape(c);}
+  Raster raster{pixels,rect,wireOrder_,side};for(int i=0;i<list.count;++i){const auto& c=list.items[i];const auto& q=list.bounds[i];if(q.r<=rect.x||q.l>=rect.x+rect.width||q.b<=rect.y||q.t>=rect.y+rect.height)continue;if(c.kind==Command::Text)raster.text(c);else raster.shape(c);}
 }
 void HudRenderer::render(uint16_t* pixels,const HudInput& input){if(prepareFrame(0,input))renderPrepared(pixels,0,{0,0,466,466});}
 AltimeterDamage HudRenderer::damagePrepared(unsigned slot)const{return state_&&slot<3?state_->slots[slot]->damage:AltimeterDamage();}

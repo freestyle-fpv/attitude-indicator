@@ -41,10 +41,11 @@ void FastPanel::enableTearingSignal(){
   const uint8_t mode=0;command(0x35,&mode,1);
   spi_device_release_bus(handle_);
 }
-void FastPanel::presentRect(PanelDisplay& display,const uint16_t* frame,int x,int y,int width,int height,uint16_t* scratch,size_t scratchPixels){
-  assert(scratch&&scratchPixels>=4);
+void FastPanel::presentRect(PanelDisplay& display,const uint16_t* frame,int x,int y,int width,int height,uint16_t* scratch,size_t scratchPixels,UsbSide side){
+  assert(scratch?scratchPixels>=4:side==UsbSide::Left);
   assert((x|y|width|height)%2==0); // CO5300 windows start even and end odd on BOTH axes.
-  presentWindow(display,frame,x,y,width,height,scratch,scratchPixels);
+  const auto r=panelRect({x,y,width,height},side);
+  presentWindow(display,frame,r.x,r.y,r.width,r.height,scratch,scratchPixels,side);
 }
 void PANEL_IRAM FastPanel::beginQueuedTransaction(spi_transaction_t* tx){
   if(tx->user){gpio_set_level(static_cast<gpio_num_t>(board::LcdCs),0);
@@ -73,7 +74,7 @@ void FastPanel::presentRegions(PanelDisplay& display,const uint16_t* pixels,cons
     ++completed;--pending;};
   for(int i=0;i<count;++i){if(pending==2)drain();const uint32_t began=micros();
     const auto r=regions[i];const unsigned slot=i%2;const size_t size=size_t(r.width)*r.height;
-    std::memcpy(scratch+slot*limit,pixels+offset,size*sizeof(uint16_t));
+    copyPixels(scratch+slot*limit,pixels+offset,size);
     for(unsigned j=0;j<3;++j){auto& tx=transactions_[slot*3+j];tx={};tx.base.user=&regionTiming_[i];
       if(j<2){const unsigned first=j==0?r.x+board::LcdColumnOffset:r.y+board::LcdRowOffset;
         const unsigned last=first+(j==0?r.width:r.height)-1;
@@ -92,7 +93,7 @@ void FastPanel::presentBand(PanelDisplay& display,uint16_t* frame,int firstRow,i
   const CircleBand band=circleBandBounds(firstRow,rows);
   presentWindow(display,frame,band.x,firstRow,band.width,rows,nullptr,0);
 }
-void FastPanel::presentWindow(PanelDisplay& display,const uint16_t* frame,int left,int firstRow,int width,int rows,uint16_t* scratch,size_t scratchPixels){
+void FastPanel::presentWindow(PanelDisplay& display,const uint16_t* frame,int left,int firstRow,int width,int rows,uint16_t* scratch,size_t scratchPixels,UsbSide side){
   assert(frame&&left>=0&&firstRow>=0&&width>0&&rows>0&&left+width<=466&&firstRow+rows<=466);
   const uint32_t setupStart=micros();
   const size_t total=static_cast<size_t>(width)*rows;
@@ -110,6 +111,7 @@ void FastPanel::presentWindow(PanelDisplay& display,const uint16_t* frame,int le
   // A completed DMA descriptor AND its backing memory must be released before reuse.
   const unsigned depth=scratch?2:QueueDepth;
   const size_t limit=scratch?std::min(ChunkPixels,(scratchPixels/2)&~size_t(1)):ChunkPixels;
+  const bool transposed=quarterTurn(side);
   size_t offset=0;unsigned chunk=0,pending=0;
   while(offset<total){
     const unsigned slot=chunk%depth;
@@ -125,7 +127,11 @@ void FastPanel::presentWindow(PanelDisplay& display,const uint16_t* frame,int le
     tx.base.flags=SPI_TRANS_MODE_QIO;
     if(chunk==0){tx.base.cmd=0x32;tx.base.addr=0x002C00;}
     else tx.base.flags|=SPI_TRANS_VARIABLE_CMD|SPI_TRANS_VARIABLE_ADDR|SPI_TRANS_VARIABLE_DUMMY;
-    if(scratch){std::memcpy(scratch+slot*limit,frame+offset,pixels*2);tx.base.tx_buffer=scratch+slot*limit;}
+    if(scratch){
+      auto* out=scratch+slot*limit;
+      copyPanelPixels(out,frame,transposed?rows:width,transposed?width:rows,side,offset,pixels);
+      tx.base.tx_buffer=out;
+    }
     else tx.base.tx_buffer=frame+offset;
     tx.base.length=pixels*16;
     ESP_ERROR_CHECK(spi_device_queue_trans(handle_,&tx.base,portMAX_DELAY));

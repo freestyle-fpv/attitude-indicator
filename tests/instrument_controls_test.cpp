@@ -55,17 +55,26 @@ int main(){
   hudDemoState();
   climbRate();
   InstrumentControls c;
-  assert(c.airspeed()&&c.demo());
+  assert(c.attitude()&&!c.demo());
+  assert(c.step(0)==InstrumentControls::None&&c.attitude());
+  c.step(1);assert(c.hud()&&!c.demo());
+  c.step(1);assert(c.airspeed()&&c.demo());
+  c.step(1);assert(c.altimeter()&&c.demo());
+  c.step(1);assert(c.attitude()&&!c.demo());
+  c.step(-1);assert(c.altimeter()&&c.demo());
+  c.step(-1);assert(c.airspeed()&&c.demo());
+  c.step(-1);assert(c.hud()&&!c.demo());
+  c.step(-1);assert(c.attitude()&&!c.demo());
   for(uint32_t now=0;now<120000;now+=17){
     c.update(now);assert(std::isfinite(c.speed())&&c.speed()>=0&&c.speed()<=200);
     assert(std::isfinite(c.altitude())&&c.altitude()>=125&&c.altitude()<=425);
   }
-  c.step(1);assert(!c.airspeed()&&!c.demo());
   c.toggleDemo(120000);assert(c.demo());
-  c.step(1);assert(c.altimeter()&&c.demo());
+  c.step(-1);assert(c.altimeter()&&c.demo());
   command(c,"b275\n",120000);
   for(int i=0;i<100;++i)c.update(120000+i*20);
   assert(c.altimeter()&&!c.demo()&&std::fabs(c.altitude()-275)<.01f);
+  c.step(1);assert(c.attitude()&&c.demo());
   c.step(1);assert(c.hud()&&!c.demo());
   c.step(1);assert(c.airspeed()&&c.demo());
   command(c,"v250\n",120001);c.update(121001);assert(!c.demo());

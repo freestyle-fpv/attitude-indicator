@@ -13,3 +13,7 @@ and scales its independently computed horizon alpha by it; this explicit paint
 contract prevents the horizon from overwriting the partially covered rim. Sharing artwork does not independently verify its visual
 design; `depth_style_test.cpp` checks the requested transparency and shadow
 behavior, and rendered native-resolution previews provide visual review.
+
+The FPV readability revision also shares the pitch and bank artwork and
+horizon width. The original scalar shader still paints the horizon per pixel,
+independently of the current renderer's span calculation.

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "installation.h"
 namespace instrument {
 class FpsCounter {
  public:
@@ -25,11 +26,14 @@ class FpsOverlay {
   void blit(uint16_t* frame,int stride) const;
   // Memory origin corresponds to (firstColumn, firstRow) in the full frame.
   void blitBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0) const;
+  void blitPanelBand(uint16_t* frame,AirspeedRect rect,UsbSide side) const;
   // Transparent yellow DEMO legend at (209,414), within a 48x14 rectangle.
   void blitDemoBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0) const;
+  void blitPanelLegend(uint16_t* frame,AirspeedRect rect,UsbSide side,bool demo,bool opaque=false) const;
   // Opaque SIM backing keeps a full-circle dial's ticks and needles out of the label.
   void blitSimBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn=0,bool opaque=false) const;
   uint16_t* pixels(){return pixels_;}
+  int tenths()const{return lastTenths_;}
  private:
   void blitLegend(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,const char* text,int count,bool opaque=false) const;
   uint16_t pixels_[Width*Height];

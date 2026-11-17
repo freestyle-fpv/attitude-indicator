@@ -46,7 +46,7 @@ void lettering(uint16_t* face,const char* text,float x,float y,float size,uint16
   float advance=0;
   for(const char* p=text;*p;++p)if(auto g=glyph(*p))advance+=g->advance*scale;
   x-=advance/2;
-  const float baseline=y+size*.34f;
+  const float baseline=y+size*.36f;
   for(const char* p=text;*p;++p){
     auto g=glyph(*p);if(!g)continue;
     // Four subpixel scanlines and exact horizontal coverage, including counters.

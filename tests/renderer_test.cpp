@@ -29,9 +29,14 @@ int main() {
     if(dx*dx+dy*dy>232.5f*232.5f && frame[y*n+x]!=0)clipped=false;
   }
   check(clipped,"all pixels outside the circular display are black");
-  check(sky(frame[145*n+170]), "level upper hemisphere is sky");
-  check(ground(frame[320*n+170]), "level lower hemisphere is ground");
-  check(ground(frame[255*n+300]), "level lower-right sample is ground");
+  // Sample between the ring and the numbered pitch ladder.
+  check(sky(frame[145*n+150]), "level upper hemisphere is sky");
+  check(ground(frame[320*n+150]), "level lower hemisphere is ground");
+  check(ground(frame[255*n+320]), "level lower-right sample is ground");
+  check(white(frame[231*n+80]) && white(frame[234*n+80]) &&
+        white(frame[231*n+25]) && white(frame[234*n+25]),
+        "inner and outer horizons have four bright rows at level");
+  check(!white(frame[217*n+224]), "the unnumbered five-degree pitch mark is omitted");
   std::vector<int> yellowPixels;
   for (int y=222; y<281; ++y) for (int x=108; x<358; ++x)
     // Opaque yellow must remain fixed; translucent edge pixels deliberately
@@ -49,7 +54,7 @@ int main() {
     if(dx*dx+dy*dy>181.f*181.f && frame[y*n+x]!=levelFrame[y*n+x])annulusUnchanged=false;
   }
   check(annulusUnchanged,"outer horizon is independent of pitch");
-  check(sky(frame[255*n+300]), "nose-up moves horizon down and increases sky");
+  check(sky(frame[255*n+320]), "nose-up moves horizon down and increases sky");
   for (size_t i=0;i<yellowPixels.size();++i) {
     if (!yellow(frame[yellowPixels[i]])) {check(false,"yellow aircraft fixed under pitch"); break;}
   }
@@ -58,12 +63,12 @@ int main() {
   check(white(frame[50*n+133]), "white bank index rotates counterclockwise with positive roll");
   check(yellow(frame[80*n+232]), "yellow bank pointer stays fixed under roll");
   check(sky(frame[240*n+150]), "right bank places sky below center on left");
-  check(ground(frame[220*n+310]), "right bank places ground above center on right");
+  check(ground(frame[220*n+320]), "right bank places ground above center on right");
   for (size_t i=0;i<yellowPixels.size();++i) {
     if (!yellow(frame[yellowPixels[i]])) {check(false,"yellow aircraft fixed under roll"); break;}
   }
   renderer.render(frame, 0, 180);
-  check(ground(frame[145*n+170]) && sky(frame[320*n+170]), "180 degree roll swaps sky and ground");
+  check(ground(frame[145*n+150]) && sky(frame[320*n+150]), "180 degree roll swaps sky and ground");
   renderer.render(frame, -25, 0);
   check(ground(frame[210*n+300]), "nose-down moves ground above center");
   renderer.render(frame, 10, 179.9f);

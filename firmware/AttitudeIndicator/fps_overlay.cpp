@@ -58,8 +58,37 @@ void FpsOverlay::blitBand(uint16_t* frame,int stride,int firstRow,int rowCount,i
 void FpsOverlay::blitDemoBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn) const{
   blitLegend(frame,stride,firstRow,rowCount,firstColumn,"DEMO",4);
 }
+void FpsOverlay::blitPanelBand(uint16_t* frame,AirspeedRect r,UsbSide side) const{
+  if(side==UsbSide::Left){blitBand(frame,r.width,r.y,r.height,r.x);return;}
+  const auto box=panelRect({X,Y,Width,Height},side);
+  const auto fromPanel=inverse(side);
+  for(int y=std::max(r.y,box.y);y<std::min(r.y+r.height,box.y+box.height);++y){
+    for(int x=std::max(r.x,box.x);x<std::min(r.x+r.width,box.x+box.width);++x){
+      const auto p=toPanel({x,y},fromPanel);
+      frame[(y-r.y)*r.width+x-r.x]=pixels_[(p.y-Y)*Width+p.x-X];
+    }
+  }
+}
 void FpsOverlay::blitSimBand(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,bool opaque) const{
   blitLegend(frame,stride,firstRow,rowCount,firstColumn,"SIM",3,opaque);
+}
+void FpsOverlay::blitPanelLegend(uint16_t* frame,AirspeedRect r,UsbSide side,bool demo,bool opaque) const{
+  const char* label=demo?"DEMO":"SIM";
+  const int count=demo?4:3;
+  if(side==UsbSide::Left){blitLegend(frame,r.width,r.y,r.height,r.x,label,count,opaque);return;}
+  const int x=(ScreenSize-count*12)/2;
+  const auto box=panelRect({x-(opaque?4:0),411,count*12+(opaque?8:0),20},side);
+  const auto fromPanel=inverse(side);
+  const uint16_t yellow=wireOrder_?0xe0ff:0xffe0,backing=wireOrder_?0x4108:0x0841;
+  for(int y=std::max(r.y,box.y);y<std::min(r.y+r.height,box.y+box.height);++y){
+    for(int col=std::max(r.x,box.x);col<std::min(r.x+r.width,box.x+box.width);++col){
+      const auto p=toPanel({col,y},fromPanel);
+      const int dx=p.x-x,dy=p.y-414;
+      const bool ink=dx>=0&&dx<count*12&&dx%12<10&&dy>=0&&dy<14&&
+        (glyph(label[dx/12])[(dx%12)/2]&(1u<<(dy/2)));
+      if(ink||opaque)frame[(y-r.y)*r.width+col-r.x]=ink?yellow:backing;
+    }
+  }
 }
 void FpsOverlay::blitLegend(uint16_t* frame,int stride,int firstRow,int rowCount,int firstColumn,const char* text,int count,bool opaque) const{
   const int xOrigin=(466-count*12)/2,yOrigin=414;

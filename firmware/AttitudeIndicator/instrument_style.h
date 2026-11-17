@@ -2,11 +2,20 @@
 #define INSTRUMENT_STYLE_H
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
+#include "hud_font_sampling.h"
+#include "raster_math.h"
 
 namespace instrument { namespace style {
-// Paint and fixed geometry are evaluated only during renderer initialization.
-// Keeping them separate lets the frozen raster engines exercise the new art.
+// Shared artwork for the production renderer and the older raster engines
+// used to verify caching, clipping and wire order.
 const float Center=232.5f, Ball=174.f, Pi=3.14159265358979323846f;
+const uint16_t White=0xffde;
+constexpr float HorizonEdge=3.f;
+constexpr float HorizonGuard=HorizonEdge+.5f;
+constexpr int32_t HorizonEdgeQ18=int32_t(HorizonEdge*(1<<18));
+constexpr int32_t HorizonGuardQ18=int32_t(HorizonGuard*(1<<18));
+
 inline float clamp(float v,float lo,float hi){return v<lo?lo:(v>hi?hi:v);}
 inline float smooth(float lo,float hi,float v){
   const float t=clamp((v-lo)/(hi-lo),0,1);return t*t*(3-2*t);
@@ -59,6 +68,79 @@ inline uint8_t background(int x,int y,uint16_t& sky,uint16_t& ground){
   // The horizon is composed later. Retain the lip's transmittance so the white
   // line cannot overwrite a nearly opaque antialiased rim pixel.
   return static_cast<uint8_t>(clamp(p.visibility,0,1)*255+.5f);
+}
+
+template<class Canvas> void bank(Canvas& c,float roll){
+  c.limit=Center;
+  const int angles[]={-60,-45,-30,-10,10,30,45,60};
+  for(unsigned i=0;i<sizeof(angles)/sizeof(angles[0]);++i){
+    float a=angles[i]*Pi/180-roll,sa=std::sin(a),ca=std::cos(a);
+    const bool major=std::abs(angles[i])==30||std::abs(angles[i])==60;
+    const float inner=181,outer=major?219:207;
+    if(std::abs(angles[i])==45){
+      float tx=Center+181*sa,ty=Center-181*ca;
+      c.triangle(tx,ty,Center+204*sa-7*ca,Center-204*ca-7*sa,Center+204*sa+7*ca,Center-204*ca+7*sa,White);
+    }else c.line(Center+inner*sa,Center-inner*ca,Center+outer*sa,Center-outer*ca,major?5.f:4.f,White);
+  }
+  float cr=std::cos(roll),sr=std::sin(roll);
+  c.triangle(Center-177.5f*sr,Center-177.5f*cr,
+             Center-8*cr-218.5f*sr,Center+8*sr-218.5f*cr,
+             Center+8*cr-218.5f*sr,Center-8*sr-218.5f*cr,White);
+}
+constexpr float PitchDigitScale=22.f/hudfont::Size;
+constexpr float PitchDigitAdvance=hudfont::Advance*PitchDigitScale;
+
+template<class Canvas> void paintPitchDigit(Canvas& c,int digit,float cx,float cy,float cr,float sr,
+                                           int firstRow,int endRow,int firstColumn,int endColumn){
+  const auto& ink=hudfont::inkBounds[digit];
+  constexpr float originX=hudfont::OriginX+hudfont::Advance*.5f;
+  const float left=(ink.l-1-originX)*PitchDigitScale,right=(ink.r+1-originX)*PitchDigitScale;
+  const float top=(ink.t-1-hudfont::DigitCenterY)*PitchDigitScale,bottom=(ink.b+1-hudfont::DigitCenterY)*PitchDigitScale;
+  const float u=(left+right)*.5f,v=(top+bottom)*.5f;
+  const float du=(right-left)*.5f,dv=(bottom-top)*.5f;
+  const float x=cx+u*cr+v*sr,y=cy-u*sr+v*cr;
+  const float wx=du*std::fabs(cr)+dv*std::fabs(sr),wy=du*std::fabs(sr)+dv*std::fabs(cr);
+  const int y0=ceilBound(maxBound(float(firstRow),y-wy-.001f));
+  const int y1=floorBound(minBound(float(endRow-1),y+wy+.001f));
+  if(y0>y1)return;
+  const int x0=ceilBound(maxBound(float(firstColumn),x-wx-.001f));
+  const int x1=floorBound(minBound(float(endColumn-1),x+wx+.001f));
+  const uint8_t* glyph=hudfont::glyphs()[digit];
+  constexpr float inverseScale=1.f/PitchDigitScale;
+  for(int yy=y0;yy<=y1;++yy)for(int xx=x0;xx<=x1;++xx){
+    const float dx=xx-cx,dy=yy-cy;
+    const float sx=originX+(dx*cr-dy*sr)*inverseScale;
+    const float sy=hudfont::DigitCenterY+(dx*sr+dy*cr)*inverseScale;
+    const float alpha=hudfont::sampleGlyph(glyph,sx,sy);
+    if(alpha>0)c.pixel(xx,yy,White,alpha*(1.f/255.f));
+  }
+}
+
+template<class Canvas> void ladder(Canvas& c,float pitch,float cr,float sr){
+  for(int latitude=-80;latitude<=80;latitude+=10){
+    if(latitude==0)continue;
+    float angle=latitude*Pi/180-pitch;
+    if(std::cos(angle)<.15f || std::fabs(angle)>40*Pi/180)continue;
+    float sine=std::sin(angle);
+    const bool major=latitude%20==0;
+    const float half=major?61.f:44.f;
+    const float width=major?4.4f:3.6f;
+    const int segments=major?29:20;
+    const float step=2*half/segments;
+    float py=-std::sqrt(Ball*Ball-half*half)*sine,px=-half;
+    for(int i=1;i<=segments;++i){
+      float next=-half+i*step,y=-std::sqrt(Ball*Ball-next*next)*sine;
+      c.line(Center+px*cr+py*sr,Center-px*sr+py*cr,Center+next*cr+y*sr,Center-next*sr+y*cr,width,White);px=next;py=y;
+    }
+    const float labelX=half+19.f,labelY=-std::sqrt(Ball*Ball-labelX*labelX)*sine;
+    const int tens=std::abs(latitude)/10;
+    // Paint the two labels in the same rotated coordinate system as the rung.
+    for(int side:{-1,1}){
+      const float first=side*labelX-PitchDigitAdvance*.5f,second=first+PitchDigitAdvance;
+      c.pitchDigit(tens,Center+first*cr+labelY*sr,Center-first*sr+labelY*cr,cr,sr);
+      c.pitchDigit(0,Center+second*cr+labelY*sr,Center-second*sr+labelY*cr,cr,sr);
+    }
+  }
 }
 
 inline float segmentDistance(float x,float y,float ax,float ay,float bx,float by){

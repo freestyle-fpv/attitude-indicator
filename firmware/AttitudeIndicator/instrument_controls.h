@@ -5,7 +5,8 @@ namespace instrument {
 class InstrumentControls {
  public:
   enum Action { None,DisplayChanged,Calibrate };
-  enum class Mode { Airspeed,Attitude,Altimeter,Hud };
+  // Order for upward swipes, starting at the power-on dial.
+  enum class Mode { Attitude,Hud,Airspeed,Altimeter };
   bool airspeed() const{return mode_==Mode::Airspeed;}
   bool attitude() const{return mode_==Mode::Attitude;}
   bool altimeter() const{return mode_==Mode::Altimeter;}
@@ -21,7 +22,7 @@ class InstrumentControls {
   Action input(char c,uint32_t now);
   void update(uint32_t now);
  private:
-  Mode mode_=Mode::Airspeed;
+  Mode mode_=Mode::Attitude;
   bool speedDemo_=true,attitudeDemo_=false,haveUpdate_=false;
   bool altitudeDemo_=true,readingAltitude_=false;
   bool hudDemo_=false;

@@ -19,7 +19,6 @@ uint32_t renderStages[4]={};
 namespace {
 const int N=466, PIXELS=N*N;
 const float C=232.5f, R=232.5f, BALL=174.0f, PI=3.14159265358979323846f;
-const uint16_t WHITE=0xffde;
 float clamp(float v,float lo,float hi){return v<lo?lo:(v>hi?hi:v);}
 uint16_t blend(uint16_t a,uint16_t b,float t){
   const float u=1-t;
@@ -50,6 +49,9 @@ struct Canvas {
     }
     f[y*N+x]=alpha>=1?color:blend(f[y*N+x],color,alpha);
   }
+  void pitchDigit(int digit,float x,float y,float cr,float sr){
+    style::paintPitchDigit(*this,digit,x,y,cr,sr,0,N,0,N);
+  }
   void line(float x1,float y1,float x2,float y2,float width,uint16_t col){
     float vx=x2-x1,vy=y2-y1,len=vx*vx+vy*vy,half=width*.5f;
     const float inverseLength=len>0?1.f/len:0;
@@ -74,43 +76,6 @@ struct Canvas {
     line(ax,ay,bx,by,1,color);line(bx,by,cx,cy,1,color);line(cx,cy,ax,ay,1,color);
   }
 };
-void bank(Canvas& c,float roll){
-  c.limit=R;
-  const int angles[]={-60,-45,-30,-20,-10,10,20,30,45,60};
-  for(unsigned i=0;i<sizeof(angles)/sizeof(angles[0]);++i){
-    float a=angles[i]*PI/180-roll,sa=std::sin(a),ca=std::cos(a);
-    float inner=181,outer=(std::abs(angles[i])==30||std::abs(angles[i])==60)?219:207;
-    if(std::abs(angles[i])==45){
-      float tx=C+181*sa,ty=C-181*ca;
-      c.triangle(tx,ty,C+204*sa-7*ca,C-204*ca-7*sa,C+204*sa+7*ca,C-204*ca+7*sa,WHITE);
-    }else c.line(C+inner*sa,C-inner*ca,C+outer*sa,C-outer*ca,3,WHITE);
-  }
-  float cr=std::cos(roll),sr=std::sin(roll);
-  c.triangle(C-177.5f*sr,C-177.5f*cr,
-             C-8*cr-218.5f*sr,C+8*sr-218.5f*cr,
-             C+8*cr-218.5f*sr,C-8*sr-218.5f*cr,WHITE);
-}
-void fixed(Canvas& c){style::fixed(c);}
-// Compact single-stroke numerals: quiet instrument lettering, rotated with the ball.
-const float zero[]={0.2f,0, .8f,0, 1,.2f, 1,.8f, .8f,1, .2f,1, 0,.8f, 0,.2f, .2f,0};
-const float one[]={.15f,.2f, .55f,0, .55f,1};
-const float two[]={0,.2f, .2f,0, .8f,0, 1,.2f, .9f,.4f, 0,1, 1,1};
-const float three[]={0,0, 1,0, .5f,.45f, .9f,.55f, 1,.8f, .8f,1, 0,1};
-const float four[]={.8f,1, .8f,0, 0,.7f, 1,.7f};
-const float five[]={1,0, 0,0, 0,.45f, .8f,.45f, 1,.65f, 1,.85f, .8f,1, 0,1};
-const float six[]={.9f,0, .2f,.1f, 0,.5f, 0,.8f, .2f,1, .8f,1, 1,.8f, 1,.6f, .8f,.45f, 0,.45f};
-const float seven[]={0,0, 1,0, .3f,1};
-const float eight[]={.2f,0, .8f,0, 1,.2f, .8f,.45f, .2f,.55f, 0,.8f, .2f,1, .8f,1, 1,.8f, .8f,.55f, .2f,.45f, 0,.2f, .2f,0};
-const float nine[]={1,.55f, .2f,.55f, 0,.35f, 0,.15f, .2f,0, .8f,0, 1,.2f, 1,.7f, .8f,1, .1f,1};
-void digit(Canvas& c,int d,float x,float y,float cr,float sr){
-  const float* paths[]={zero,one,two,three,four,five,six,seven,eight,nine};
-  const int sizes[]={9,3,7,7,4,8,10,3,13,10};
-  const float* p=paths[d];
-  for(int i=1;i<sizes[d];++i){
-    float x1=x+p[2*i-2]*7,y1=y+p[2*i-1]*13,x2=x+p[2*i]*7,y2=y+p[2*i+1]*13;
-    c.line(C+x1*cr+y1*sr,C-x1*sr+y1*cr,C+x2*cr+y2*sr,C-x2*sr+y2*cr,1.5f,WHITE);
-  }
-}
 }
 struct Renderer::Data {
   uint16_t sky[PIXELS],ground[PIXELS]; int16_t depth[PIXELS];
@@ -126,11 +91,11 @@ bool Renderer::begin(){
   // Record static geometry once. Replay preserves the original antialiasing and
   // layer order without repeating distance tests, division or square roots.
   data_->fixedCount=0;data_->fixedPixels=nullptr;
-  Canvas counter(nullptr,R,nullptr,&data_->fixedCount);fixed(counter);
+  Canvas counter(nullptr,R,nullptr,&data_->fixedCount);style::fixed(counter);
   data_->fixedPixels=static_cast<FixedPixel*>(allocate(data_->fixedCount*sizeof(FixedPixel)));
   if(!data_->fixedPixels){std::free(data_);data_=nullptr;return false;}
   size_t recorded=0;
-  Canvas recorder(nullptr,R,data_->fixedPixels,&recorded);fixed(recorder);
+  Canvas recorder(nullptr,R,data_->fixedPixels,&recorded);style::fixed(recorder);
   for(int y=0;y<N;++y)for(int x=0;x<N;++x){
     int i=y*N+x;float dx=x-C,dy=y-C,r2=dx*dx+dy*dy;
     if(r2>R*R){data_->sky[i]=data_->ground[i]=0;data_->depth[i]=-1;continue;}
@@ -164,37 +129,19 @@ void Renderer::render(uint16_t* frame,float pitch,float roll){
       int32_t elevation=(depth & 0x4000)?outer:inner-depth*depthStep;
       frame[i]=elevation<0?data_->sky[i]:data_->ground[i];
       int32_t distance=std::abs(elevation);
-      if(distance<314573 && data_->sky[i]!=data_->ground[i])
-        frame[i]=blend(frame[i],WHITE,clamp(1.2f-distance*(1.f/262144.f),0,1)*(data_->horizonVisibility[i]*(1.f/255.f)));
+      if(distance<style::HorizonEdgeQ18 && data_->sky[i]!=data_->ground[i])
+        frame[i]=blend(frame[i],style::White,clamp(style::HorizonEdge-distance*(1.f/262144.f),0,1)*(data_->horizonVisibility[i]*(1.f/255.f)));
     }
   }
 #if defined(ARDUINO_ARCH_ESP32)
   renderStages[0]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif
   Canvas c={frame,BALL-7};
-  for(int latitude=-80;latitude<=80;latitude+=5){
-    if(latitude==0)continue;
-    float angle=latitude*PI/180-pitch;
-    if(std::cos(angle)<.15f || std::fabs(angle)>40*PI/180)continue;
-    float sine=std::sin(angle);
-    bool major=latitude%10==0;
-    float half=major?(std::abs(latitude)%20==0?57:40):17;
-    float py=-std::sqrt(BALL*BALL-half*half)*sine,px=-half;
-    for(float x=-half+4;x<=half+3.9f;x+=4){
-      float next=std::fmin(x,half),y=-std::sqrt(BALL*BALL-next*next)*sine;
-      c.line(C+px*cr+py*sr,C-px*sr+py*cr,C+next*cr+y*sr,C-next*sr+y*cr,major?2:1.6f,WHITE);px=next;py=y;
-    }
-    if(major){
-      float yy=-std::sqrt(BALL*BALL-(half+17)*(half+17))*sine-6.5f;
-      int num=std::abs(latitude);
-      digit(c,num/10,-half-25,yy,cr,sr);digit(c,0,-half-15,yy,cr,sr);
-      digit(c,num/10,half+9,yy,cr,sr);digit(c,0,half+19,yy,cr,sr);
-    }
-  }
+  style::ladder(c,pitch,cr,sr);
 #if defined(ARDUINO_ARCH_ESP32)
   renderStages[1]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif
-  bank(c,roll);
+  style::bank(c,roll);
 #if defined(ARDUINO_ARCH_ESP32)
   renderStages[2]=esp_timer_get_time()-stamp;stamp=esp_timer_get_time();
 #endif

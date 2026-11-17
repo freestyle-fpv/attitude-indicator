@@ -71,7 +71,7 @@ int main(){
   assert(yellow>100 && yellow<48*14);
   std::fill(band.begin(),band.end(),0x1234);
   wireOverlay.blitDemoBand(band.data()+1,n,428,INT_MAX);
-  wireOverlay.blitDemoBand(band.data()+1,256,414,14);
+  wireOverlay.blitDemoBand(band.data()+1,209,414,14);
   wireOverlay.blitDemoBand(band.data()+1,n,-1,14);
   wireOverlay.blitDemoBand(nullptr,n,414,14);
   for(uint16_t pixel:band)assert(pixel==0x1234);
