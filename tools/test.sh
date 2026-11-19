@@ -6,6 +6,7 @@ mkdir -p build
 TASK_CXX=${CXX:-clang++}
 "$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/attitude_test.cpp firmware/AttitudeIndicator/attitude.cpp -o build/attitude_test
 build/attitude_test
+sh tools/imu_recovery_test.sh
 "$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -Ifirmware/AttitudeIndicator -fsanitize=address,undefined tests/renderer_test.cpp firmware/AttitudeIndicator/renderer.cpp -o build/renderer_test
 build/renderer_test
 "$TASK_CXX" -std=c++11 -O2 -Wall -Wextra -Werror -Ifirmware/AttitudeIndicator -fsanitize=address,undefined tests/depth_style_test.cpp firmware/AttitudeIndicator/renderer.cpp -o build/depth_style_test

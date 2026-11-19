@@ -210,7 +210,7 @@ void samplingTask(void*) {
   Snapshot state;
   UsbSide side=initialSide;
   instrument::CalibrationButton bootButton;
-  bool initialized=false;
+  bool initialized=false,havePrevious=false;
   uint32_t lastAttempt=millis()-1000,previousMicros=0;
   TickType_t wake=xTaskGetTickCount();
   for(;;){
@@ -221,43 +221,41 @@ void samplingTask(void*) {
       state.calibrated=false;
       state.calibrationCount=0;
       calibration.reset();
-      previousMicros=0;
+      havePrevious=false;
     }
     if(!initialized&&static_cast<uint32_t>(millis()-lastAttempt)>=1000){
       lastAttempt=millis();
       initialized=initializeImu();
       state.present=initialized;
-      state.calibrated=false;
+      // Reconfiguring the same IMU does not invalidate bias or installation trim.
       calibration.reset();
-      state.calibrationCount=0;
-      previousMicros=0;
+      if(!state.calibrated)state.calibrationCount=0;
+      state.sampleFault=true;
+      havePrevious=false;
       state.sampledAt=0;
     }
     Vec3 acceleration,gyro,raw;
     const SampleResult result=initialized?readSample(acceleration,gyro,raw,side):SampleResult::NotReady;
     if(result==SampleResult::Invalid){
-      // Known I2C faults or clipped motion invalidate immediately, even when
-      // the last good sample is recent. Never integrate across missing motion.
-      state.calibrated=false;
+      // Hide the pose immediately, but retain bias, trim and filter orientation.
+      // The first recovered sample starts a new interval; missing motion is lost.
       state.sampleFault=true;
-      state.calibrationCount=0;
+      if(!state.calibrated)state.calibrationCount=0;
       calibration.reset();
-      previousMicros=0;
+      havePrevious=false;
       const uint32_t age=state.sampledAt?static_cast<uint32_t>(millis()-state.sampledAt):static_cast<uint32_t>(millis()-lastAttempt);
       if(age>500){initialized=false;state.present=false;}
     }else if(result==SampleResult::Valid){
       state.sampleFault=false;
       const uint32_t now=micros();
-      const float dt=previousMicros?static_cast<uint32_t>(now-previousMicros)*1e-6f:0;
+      const float dt=havePrevious?static_cast<uint32_t>(now-previousMicros)*1e-6f:0;
       previousMicros=now;
+      havePrevious=true;
       state.sampledAt=millis();
       ++state.samples;
       state.rawAcceleration=raw;
       state.gyroDps={gyro.x/board::RadPerDegree,gyro.y/board::RadPerDegree,gyro.z/board::RadPerDegree};
-      if(dt>0.1f){
-        state.calibrated=false;
-        calibration.reset();
-      }
+      if(dt>0.1f&&!state.calibrated)calibration.reset();
       if(!state.calibrated){
         if(calibration.add(acceleration,gyro)){
           bias=calibration.bias();
@@ -266,16 +264,22 @@ void samplingTask(void*) {
           state.calibrated=true;
         }
         state.calibrationCount=calibration.count();
-      }else if(!filter.update(acceleration,{gyro.x-bias.x,gyro.y-bias.y,gyro.z-bias.z},dt)){
-        state.calibrated=false;
-        calibration.reset();
-        state.calibrationCount=0;
+      }else if(dt>0&&dt<=0.1f){
+        state.sampleFault=!filter.update(acceleration,{gyro.x-bias.x,gyro.y-bias.y,gyro.z-bias.z},dt);
+        if(state.sampleFault)havePrevious=false;
+      }else{
+        // No trustworthy integration interval yet. Resume on the next sample
+        // without redefining zero from an arbitrary in-flight acceleration.
+        state.sampleFault=true;
       }
       state.pitch=filter.pitch();
       state.roll=filter.roll();
     }else if(initialized){
       const uint32_t age=state.sampledAt?static_cast<uint32_t>(millis()-state.sampledAt):static_cast<uint32_t>(millis()-lastAttempt);
-      if(age>100){calibration.reset();state.calibrationCount=0;state.calibrated=false;}
+      if(age>100){
+        state.sampleFault=true;havePrevious=false;calibration.reset();
+        if(!state.calibrated)state.calibrationCount=0;
+      }
       if(age>500){initialized=false;state.present=false;}
     }
     xQueueOverwrite(snapshots,&state);
@@ -427,8 +431,8 @@ void loop() {
   }
   const bool calibrating=calibrationSession.active();
   const bool airspeed=!calibrating&&instrumentControls.airspeed(),altimeter=!calibrating&&instrumentControls.altimeter(),hud=!calibrating&&instrumentControls.hud(),demo=!calibrating&&instrumentControls.demo();
-  const bool fresh=state.sampledAt&&static_cast<uint32_t>(millis()-state.sampledAt)<=100;
-  const bool attitude=!calibrating&&instrumentControls.attitude()&&(demo||(state.calibrated&&fresh));
+  const bool current=instrument::currentAttitude(state,millis());
+  const bool attitude=!calibrating&&instrumentControls.attitude()&&(demo||current);
   instrument::DisplayStats stats=displayPipeline.stats();
   ++sequence;
   float pitch=state.pitch,roll=state.roll;
@@ -446,7 +450,7 @@ void loop() {
     auto& h=request.hudInput;h.nowMs=millis();
     h.speedKmh=instrumentControls.speed();h.altitudeM=instrumentControls.altitude();h.climb=instrumentControls.climb();
     h.pitch=state.pitch;h.roll=state.roll;
-    h.attitudeValid=state.calibrated&&fresh&&!state.sampleFault;
+    h.attitudeValid=current;
     // QMI8658 is six-axis: heading and the unconnected air-data fields are simulated.
     const float t=(demo?uint32_t(h.nowMs-instrumentControls.demoStarted()):h.nowMs)*.001f;
     h.heading=180+18*std::sin(t*.15f);
@@ -505,7 +509,7 @@ void loop() {
     char message[720];
     const uint32_t tp=touchPosition.load(std::memory_order_relaxed);
     const int length=snprintf(message,sizeof(message),"fps=%.1f pitch=%.1f roll=%.1f valid=%d cal=%u demo=%d raw_g=%.3f,%.3f,%.3f render_ms=%.1f tx_ms=%.1f frame_ms=%.1f max_gap_ms=%.1f sample_hz=%.1f heap=%u drops=%lu setup_ms=%.1f stack=%u,%u,%u stages=%lu,%lu,%lu,%lu mode=%s speed=%.1f altitude_m=%.1f te_us=%lu te_miss=%lu te_pulses=%lu patch=%lu touch=%lu touch_err=%lu touch_xy=%u,%u touch_n=%u swipes=%lu scan_us=%ld,%ld cal_id=%lu cal_ui=%d pwr_clicks=%lu usb=%s round_cross=%lu hud_cross=%lu\n",
-      stats.fps,hud?request.hudInput.pitch:state.pitch,hud?request.hudInput.roll:state.roll,state.calibrated&&fresh,state.calibrationCount,demo,
+      stats.fps,hud?request.hudInput.pitch:state.pitch,hud?request.hudInput.roll:state.roll,current,state.calibrationCount,demo,
       state.rawAcceleration.x,state.rawAcceleration.y,state.rawAcceleration.z,
       stats.renderUs/1000.f,stats.transferUs/1000.f,stats.intervalUs/1000.f,stats.maxGapUs/1000.f,
       sampleHz,ESP.getFreeHeap(),static_cast<unsigned long>(droppedLogs),stats.setupUs/1000.f,

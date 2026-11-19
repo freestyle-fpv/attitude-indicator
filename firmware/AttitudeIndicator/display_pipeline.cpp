@@ -387,8 +387,8 @@ void DisplayPipeline::run(){
     const bool firstBand=job.sequence!=activeSequence;
     if(firstBand){activeSequence=job.sequence;frameStats={};}
     Snapshot live;xQueuePeek(snapshots_,&live,0);
-    const bool current=live.calibrated&&live.sampledAt&&static_cast<uint32_t>(millis()-live.sampledAt)<=100;
-    const bool jobFresh=job.state.sampledAt&&static_cast<uint32_t>(millis()-job.state.sampledAt)<=100;
+    const bool current=currentAttitude(live,millis());
+    const bool jobFresh=currentAttitude(job.state,millis());
     const FrameDecision decision=job.hud?decideHudFrame(job.demo,current,jobFresh,job.hudInput.attitudeValid):
       decideFrame(job.airspeed||job.altimeter,job.attitude,job.demo,current,jobFresh);
     if(decision==FrameDecision::Discard){

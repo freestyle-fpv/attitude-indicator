@@ -11,3 +11,10 @@ struct Snapshot {
   Vec3 rawAcceleration{0,0,0};
   Vec3 gyroDps{0,0,0};
 };
+namespace instrument {
+// Calibration survives sensor faults; it alone no longer authorizes a pose.
+inline bool currentAttitude(const Snapshot& state,uint32_t now){
+  return state.present&&state.calibrated&&!state.sampleFault&&state.sampledAt&&
+    static_cast<uint32_t>(now-state.sampledAt)<=100;
+}
+}
