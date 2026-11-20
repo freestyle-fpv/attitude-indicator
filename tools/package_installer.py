@@ -19,6 +19,7 @@ BUILD = ROOT / "build" / "firmware"
 SKETCH = "AttitudeIndicator.ino"
 CORE = ROOT / ".arduino/data/packages/esp32/hardware/esp32/3.3.10"
 WEB_TOOLS_VERSION = "10.5.2"
+INSTALLER_REVISION = 2
 WEB_TOOLS_URL = f"https://registry.npmjs.org/esp-web-tools/-/esp-web-tools-{WEB_TOOLS_VERSION}.tgz"
 WEB_TOOLS_SHA512 = (
     "i5qsHv1bnrb/9gmKEN7qIaDTMOMy6OctrgFVXStrU2s79erY2Z7IKydveNk0"
@@ -89,8 +90,8 @@ def build_web_tools(esbuild, cache):
                 if member.isfile() and str(path.parent) == "package/dist/web" and path.suffix == ".js":
                     (stage / path.name).write_bytes(tar.extractfile(member).read())
         result = subprocess.run(
-            [esbuild, str(stage / "install-button.js"), "--bundle", "--format=esm",
-             "--platform=browser", "--minify", "--legal-comments=inline"],
+            [esbuild, str(stage / "install-button.js"), "--bundle", "--format=iife",
+             "--platform=browser", "--target=es2019", "--minify", "--legal-comments=inline"],
             check=True, capture_output=True, text=True,
         )
     if "</script" in result.stdout.lower():
@@ -115,16 +116,18 @@ def main():
     payload = json.dumps({"version": args.version, "parts": parts}, separators=(",", ":"))
     source = (ROOT / "installer" / "index.html").read_text(encoding="utf-8")
     page = source.replace("__FIRMWARE_VERSION__", args.version)
+    page = page.replace("__INSTALLER_REVISION__", str(INSTALLER_REVISION))
     page = page.replace("__FIRMWARE_PAYLOAD__", payload).replace("__INSTALLER_BUNDLE__", bundle)
     page_name = "Install-Attitude-Indicator.html"
     (output / page_name).write_text(page, encoding="utf-8")
-    archive = output / f"Attitude-Indicator-{args.version}-USB-Installer.zip"
+    archive = output / f"Attitude-Indicator-{args.version}-USB-Installer-r{INSTALLER_REVISION}.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as package:
         package.writestr(page_name, page)
         package.writestr("README.txt", (
             "航模座舱仪表 USB 安装包\n\n"
             "适用板型：Waveshare ESP32-S3-Touch-AMOLED-1.75\n"
             f"固件版本：{args.version}\n\n"
+            f"安装器修订：r{INSTALLER_REVISION}\n\n"
             f"解压后在电脑 Chrome 或 Edge 中打开 {page_name}。\n"
             "用 USB 数据线连接开发板，点击「安装固件」，选择新出现的串口，\n"
             "依次点击 Install → Next → Install。安装完成后关闭浏览器标签页。\n"

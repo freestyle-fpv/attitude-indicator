@@ -43,6 +43,7 @@
     summary { cursor: pointer; }
     footer { color: #a6b5c8; font-size: .875rem; margin-top: 20px; }
     a { color: #a0cdfa; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
   </style>
 </head>
 <body>
@@ -54,13 +55,18 @@
       <li>点击下方按钮，选择新出现的 USB 串口，再依次点击 <strong>Install → Next → Install</strong>。</li>
       <li>看到 <strong>Installation complete!</strong> 后关闭本页。按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准，无需按键。</li>
     </ol>
-    <p id="loading" role="status">正在加载安装器…</p>
+    <p id="loading" role="status">安装器尚未启动。请在电脑上用最新版 Chrome 或 Edge 打开，并允许 JavaScript 运行。</p>
     <esp-web-install-button hidden>
       <button type="button" slot="activate">安装固件</button>
       <span slot="unsupported">请在电脑上的 Chrome 或 Edge 打开此文件。</span>
       <span slot="not-allowed">请把安装页解压出来，再用 Chrome 或 Edge 直接打开。</span>
     </esp-web-install-button>
     <noscript>请启用 JavaScript 后重新打开此页。</noscript>
+    <details id="startup-diagnostics" hidden open>
+      <summary>安装器启动诊断（反馈问题时请复制以下内容）</summary>
+      <pre id="startup-error"></pre>
+      <p>请从 <a href="https://github.com/donne1226/attitude-indicator/releases/tag/v0.1">v0.1 发布页</a> 下载 USB 安装包并解压，不要直接运行源码中的 <code>installer/index.html</code>。</p>
+    </details>
     <details>
       <summary>首次安装与保留设置</summary>
       <p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择 <strong>Erase device</strong> 清除旧数据。重装本项目时，保持该选项未勾选即可保留安装方向和 FPS 设置。</p>
@@ -70,35 +76,91 @@
       <summary>没有找到串口或连接不上</summary>
       <p>先关闭 Arduino 串口监视器等占用串口的程序，再重新插拔 USB 数据线。如果仍然连不上，让板子完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p>
     </details>
-    <footer>固件版本 __FIRMWARE_VERSION__ · <a href="https://github.com/donne1226/attitude-indicator">项目源码</a></footer>
+    <footer>固件版本 __FIRMWARE_VERSION__ · 安装器修订 r__INSTALLER_REVISION__ · <a href="https://github.com/donne1226/attitude-indicator">项目源码</a></footer>
   </main>
   <script type="application/json" id="firmware">__FIRMWARE_PAYLOAD__</script>
-  <script type="module">
-    __INSTALLER_BUNDLE__
-
-    const installer = document.querySelector("esp-web-install-button");
-    const loading = document.querySelector("#loading");
-    try {
-      const firmware = JSON.parse(document.querySelector("#firmware").textContent);
-      const parts = firmware.parts.map(({data, offset}) => {
-        const bytes = Uint8Array.from(atob(data), byte => byte.charCodeAt(0));
-        const path = URL.createObjectURL(new Blob([bytes], {type: "application/octet-stream"}));
-        return {path, offset};
-      });
-      const manifest = {
-        name: "航模座舱仪表",
-        version: firmware.version,
-        new_install_prompt_erase: true,
-        new_install_improv_wait_time: 0,
-        builds: [{chipFamily: "ESP32-S3", parts}],
+  <script>
+    (function () {
+      var loading = document.querySelector("#loading");
+      var installer = document.querySelector("esp-web-install-button");
+      var pending = true, timer;
+      function fail(message, error) {
+        if (!pending) return;
+        pending = false;
+        clearTimeout(timer);
+        window.installerStartup.canStart = false;
+        installer.hidden = true;
+        loading.hidden = false;
+        loading.textContent = message;
+        document.querySelector("#startup-diagnostics").hidden = false;
+        document.querySelector("#startup-error").textContent = [
+          "固件版本：__FIRMWARE_VERSION__",
+          "安装器修订：r__INSTALLER_REVISION__",
+          "浏览器：" + navigator.userAgent,
+          "页面协议：" + location.protocol,
+          "安全上下文：" + !!window.isSecureContext,
+          "Web Serial：" + ("serial" in navigator),
+          "错误：" + (error ? error.message || String(error) : message)
+        ].join("\n");
+      }
+      window.installerStartup = {
+        canStart: false,
+        fail: function (error) {
+          fail("安装器启动失败，请查看下方诊断信息，并尝试用最新版 Chrome 或 Edge 重新打开。", error);
+        },
+        ready: function () {
+          if (!pending) return;
+          pending = false;
+          clearTimeout(timer);
+          installer.hidden = false;
+          loading.hidden = true;
+        }
       };
-      installer.manifest = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
-      installer.hidden = false;
-      loading.hidden = true;
-    } catch (error) {
-      console.error(error);
-      loading.textContent = "安装包读取失败，请重新下载并解压。";
-    }
+      window.addEventListener("error", function (event) { window.installerStartup.fail(event.error || event.message); });
+      window.addEventListener("unhandledrejection", function (event) { window.installerStartup.fail(event.reason); });
+      if (/^__[A-Z_]+__$/.test(document.querySelector("#firmware").textContent.trim())) {
+        fail("当前文件是未打包的源码模板，不能直接安装。请从下方发布页下载 USB 安装包 ZIP，解压后打开 Install-Attitude-Indicator.html。");
+      } else if (!window.isSecureContext) {
+        fail("当前页面不允许访问 USB 串口。请解压安装包，用电脑上的 Chrome 或 Edge 直接打开 HTML；在线页面需使用 HTTPS。");
+      } else if (!navigator.serial || typeof navigator.serial.requestPort !== "function" || !window.customElements) {
+        fail("当前浏览器不支持 USB 串口安装。请解压安装包，用电脑上的最新版 Chrome 或 Edge 打开 HTML，不要使用聊天软件或网盘的预览页面。");
+      } else {
+        loading.textContent = "正在加载安装器…";
+        window.installerStartup.canStart = true;
+        timer = setTimeout(function () {
+          fail("安装器启动超时。请重新下载并解压安装包，用最新版 Chrome 或 Edge 打开；反馈问题时请附上下方诊断信息。");
+        }, 10000);
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      if (!window.installerStartup || !window.installerStartup.canStart) return;
+      try {
+        __INSTALLER_BUNDLE__
+
+        if (!customElements.get("esp-web-install-button")) throw new Error("烧录组件未完成注册");
+        const installer = document.querySelector("esp-web-install-button");
+        const firmware = JSON.parse(document.querySelector("#firmware").textContent);
+        const parts = firmware.parts.map(({data, offset}) => {
+          const bytes = Uint8Array.from(atob(data), byte => byte.charCodeAt(0));
+          const path = URL.createObjectURL(new Blob([bytes], {type: "application/octet-stream"}));
+          return {path, offset};
+        });
+        const manifest = {
+          name: "航模座舱仪表",
+          version: firmware.version,
+          new_install_prompt_erase: true,
+          new_install_improv_wait_time: 0,
+          builds: [{chipFamily: "ESP32-S3", parts}],
+        };
+        installer.manifest = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
+        window.installerStartup.ready();
+      } catch (error) {
+        console.error(error);
+        window.installerStartup.fail(error);
+      }
+    })();
   </script>
 </body>
 </html>

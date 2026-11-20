@@ -3,6 +3,7 @@ set -eu
 TASK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$TASK_ROOT"
 mkdir -p build
+node tests/installer_loading_test.js
 TASK_CXX=${CXX:-clang++}
 "$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/attitude_test.cpp firmware/AttitudeIndicator/attitude.cpp -o build/attitude_test
 build/attitude_test
