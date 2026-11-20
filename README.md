@@ -90,7 +90,7 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 ## USB 一键安装
 
-在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/usb-installer-05c781d) 下载 `Attitude-Indicator-05c781d-USB-Installer.zip`。
+当前发布版本为 **v0.1**，主分支为 `master`。在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/v0.1) 下载 `Attitude-Indicator-v0.1-USB-Installer.zip`。
 
 仅适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。解压 USB 安装包，在电脑上的 Chrome 或 Edge 打开 `Install-Attitude-Indicator.html`。用 USB 数据线连接开发板，点击「安装固件」，选中新出现的串口，按提示选择 **Install → Next → Install**。浏览器需要用户亲自选择串口。安装页内含预编译固件和 ESP Web Tools，可离线运行。
 
@@ -100,10 +100,10 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 ```sh
 sh tools/build.sh
-python3 tools/package_installer.py --version "$(git rev-parse --short HEAD)"
+python3 tools/package_installer.py --version v0.1
 ```
 
-ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
+发布后续版本时，将 `v0.1` 替换为目标版本号。ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
 
 ## 编译和烧录
 
