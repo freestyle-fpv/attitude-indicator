@@ -94,7 +94,7 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 仅适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。解压 USB 安装包，在电脑上的 Chrome 或 Edge 打开 `Install-Attitude-Indicator.html`。用 USB 数据线连接开发板，点击「安装固件」，选中新出现的串口，按提示选择 **Install → Next → Install**。浏览器需要用户亲自选择串口。安装页内含预编译固件和 ESP Web Tools，可离线运行。
 
-重装本项目时保持 **Erase device** 未勾选，可保留安装方向和 FPS 设置。安装完成后关闭安装页，按实际方向装好开发板，让模型水平静止，再短按 PWR 校准。
+重装本项目时保持 **Erase device** 未勾选，可保留安装方向和 FPS 设置。安装完成后关闭安装页，按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准，无需按键。若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。
 
 发布新版本时，用 Python 3.9+ 和 esbuild（本包使用 0.25.12）在已配置好的开发环境中生成安装包：
 

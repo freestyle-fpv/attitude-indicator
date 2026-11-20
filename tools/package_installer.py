@@ -128,6 +128,8 @@ def main():
             f"解压后在电脑 Chrome 或 Edge 中打开 {page_name}。\n"
             "用 USB 数据线连接开发板，点击「安装固件」，选择新出现的串口，\n"
             "依次点击 Install → Next → Install。安装完成后关闭浏览器标签页。\n"
+            "按实际方向装好开发板，让模型保持水平静止，再重新上电，仪表会自动校准，无需按键。\n"
+            "若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。\n"
             "重装本项目时保持 Erase device 未勾选，即可保留安装方向和 FPS 设置。\n"
             "安装页内含固件和烧录工具，可以离线运行。\n\n"
             "固件源码：https://github.com/donne1226/attitude-indicator\n"
