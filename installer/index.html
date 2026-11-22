@@ -1,88 +1,80 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>安装航模座舱仪表</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      font-family: system-ui, sans-serif;
-      background: #10151d;
-      color: #e9eff8;
-    }
-    body { margin: 0; padding: 36px 18px; }
-    main {
-      max-width: 575px;
-      margin: 4vh auto 0;
-      padding: clamp(22px, 6vw, 44px);
-      border: 1px solid #303e51;
-      border-radius: 20px;
-      background: #18212d;
-      line-height: 1.7;
-    }
-    h1 { font-size: clamp(24px, 5vw, 35px); line-height: 1.2; margin: 0; }
-    p, ol { margin: 16px 0; }
-    ol { padding-inline-start: 1.4em; }
-    li + li { margin-top: 8px; }
-    .muted, details { color: #c0ccdb; }
-    .board { font-weight: 600; overflow-wrap: anywhere; }
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 12px 24px;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-      color: #10151d;
-      background: #8de5bb;
-    }
-    button:hover { background: #aff1d2; }
-    :focus-visible { outline: 2px solid #a0cdfa; outline-offset: 4px; }
-    details { border-top: 1px solid #303e51; margin-top: 24px; padding-top: 16px; }
-    summary { cursor: pointer; }
-    footer { color: #a6b5c8; font-size: .875rem; margin-top: 20px; }
-    a { color: #a0cdfa; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>安装航模座舱仪表</h1>
-    <p class="muted">仅适用于 <span class="board">Waveshare ESP32-S3-Touch-AMOLED-1.75</span>。</p>
-    <ol>
-      <li>在电脑上用 Chrome 或 Edge 打开本页，用 USB 数据线连接开发板。</li>
-      <li>点击下方按钮，选择新出现的 USB 串口，再依次点击 <strong>Install → Next → Install</strong>。</li>
-      <li>看到 <strong>Installation complete!</strong> 后关闭本页。按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准，无需按键。</li>
-    </ol>
-    <p id="loading" role="status">安装器尚未启动。请在电脑上用最新版 Chrome 或 Edge 打开，并允许 JavaScript 运行。</p>
-    <esp-web-install-button hidden>
-      <button type="button" slot="activate">安装固件</button>
-      <span slot="unsupported">请在电脑上的 Chrome 或 Edge 打开此文件。</span>
-      <span slot="not-allowed">请把安装页解压出来，再用 Chrome 或 Edge 直接打开。</span>
-    </esp-web-install-button>
-    <noscript>请启用 JavaScript 后重新打开此页。</noscript>
-    <details id="startup-diagnostics" hidden open>
-      <summary>安装器启动诊断（反馈问题时请复制以下内容）</summary>
-      <pre id="startup-error"></pre>
-      <p>请从 <a href="https://github.com/donne1226/attitude-indicator/releases/tag/v0.1">v0.1 发布页</a> 下载 USB 安装包并解压，不要直接运行源码中的 <code>installer/index.html</code>。</p>
-    </details>
-    <details>
-      <summary>首次安装与保留设置</summary>
-      <p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择 <strong>Erase device</strong> 清除旧数据。重装本项目时，保持该选项未勾选即可保留安装方向和 FPS 设置。</p>
-      <p>若烧录时已在桌面完成自动校准，装回座舱后请让模型保持水平静止，短按 PWR 重新校准，或重新上电自动校准。</p>
-    </details>
-    <details>
-      <summary>没有找到串口或连接不上</summary>
-      <p>先关闭 Arduino 串口监视器等占用串口的程序，再重新插拔 USB 数据线。如果仍然连不上，让板子完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p>
-    </details>
-    <footer>固件版本 __FIRMWARE_VERSION__ · 安装器修订 r__INSTALLER_REVISION__ · <a href="https://github.com/donne1226/attitude-indicator">项目源码</a></footer>
-  </main>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="航模座舱圆形仪表离线安装与设备诊断，适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。">
+<title>安装器 · 航模座舱仪表</title><link rel="stylesheet" href="service.css"></head>
+<body><div class="shell"><header class="topbar">
+ <a class="brand" href="#install"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><circle cx="20" cy="20" r="4"/><path d="M3 20h13m8 0h13M20 3v8m0 18v8M8 10l5 5m14 10 5 5"/></svg><div><strong>航模座舱仪表</strong><span>FLIGHT INSTRUMENTS / OPEN SOURCE</span></div></a>
+ <nav class="nav" aria-label="维护终端"><a href="#install" aria-current="page">安装固件</a><a href="#diagnostics">设备诊断</a></nav>
+ <span class="topmeta"><span class="status-dot" id="connectionDot"></span><span id="connectionLabel">未连接设备</span></span>
+</header>
+<main>
+<div id="installPage">
+<section class="hero install-hero"><div><div class="eyebrow">COCKPIT INSTRUMENTS / USB INSTALLER</div><h1>一块圆屏，四种飞行视角。</h1><p>为固定翼 FPV 座舱打造的开源仪表。连接 USB，将圆形姿态仪、HUD、空速表和高度计装进你的飞机。</p></div></section>
+<div class="install-grid">
+<section class="panel install-main"><h2>把仪表装进开发板</h2><p class="board-name">Waveshare ESP32-S3-Touch-AMOLED-1.75</p>
+<ol class="steps"><li><strong>连接开发板</strong>在电脑 Chrome 或 Edge 打开本页，使用 USB 数据线连接开发板。</li><li><strong>选择串口并安装</strong>点击下方按钮，选择开发板的 USB 串口，按中文提示确认并安装。已连接诊断的设备可直接安装。</li><li><strong>装好，静止，重新上电</strong>看到「安装完成」后关闭安装窗口，即可直接切换到设备诊断。按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准。</li></ol>
+<p id="loading" role="status">安装器尚未启动。请在电脑上用最新版 Chrome 或 Edge 打开，并允许 JavaScript 运行。</p>
+<div id="installerControl" hidden><button id="installFirmware" class="primary" type="button">安装固件</button><p id="installStatus" role="status" hidden></p></div>
+<noscript>请启用 JavaScript 后重新打开此页。</noscript>
+<p class="install-note">重装时不勾选「清除设备数据」，可保留安装方向和 FPS 设置。</p>
+</section>
+<aside class="panel showcase" aria-label="四种表盘预览" aria-roledescription="轮播">
+<div class="showcase-top"><span class="eyebrow">FOUR PERSPECTIVES</span><button id="carouselToggle" class="small quiet" aria-label="暂停自动轮播">暂停轮播</button></div>
+<div class="visual-panel" id="dialGallery">
+ <figure class="dial-slide" data-title="圆形姿态仪" data-subtitle="蓝天与大地，一眼掌握姿态。"><img class="instrument-art" src="screenshots/attitude.png" width="466" height="466" alt="圆形姿态仪固件截图"></figure>
+ <figure class="dial-slide" data-title="HUD 姿态仪" data-subtitle="荧光绿视野，汇集飞行信息。" hidden><img class="instrument-art" src="screenshots/hud.png" width="466" height="466" alt="HUD 姿态仪固件截图"></figure>
+ <figure class="dial-slide" data-title="空速表" data-subtitle="经典指针，清晰呈现速度。" hidden><img class="instrument-art" src="screenshots/airspeed.png" width="466" height="466" alt="空速表固件截图"></figure>
+ <figure class="dial-slide" data-title="高度计" data-subtitle="以米为单位，关注每次爬升。" hidden><img class="instrument-art" src="screenshots/altimeter.png" width="466" height="466" alt="高度计固件截图"></figure>
+</div>
+<div class="gallery-caption"><div><h2 id="dialTitle">圆形姿态仪</h2><p id="dialSubtitle">蓝天与大地，一眼掌握姿态。</p></div><span class="mono" id="dialCounter">01 / 04</span></div>
+<div class="gallery-controls"><button id="dialPrevious" class="gallery-arrow" aria-label="上一个表盘">←</button><div class="gallery-dots" role="group" aria-label="选择表盘"><button aria-label="查看圆形姿态仪" aria-pressed="true" data-dial="0"></button><button aria-label="查看 HUD 姿态仪" aria-pressed="false" data-dial="1"></button><button aria-label="查看空速表" aria-pressed="false" data-dial="2"></button><button aria-label="查看高度计" aria-pressed="false" data-dial="3"></button></div><button id="dialNext" class="gallery-arrow" aria-label="下一个表盘">→</button></div>
+</aside>
+</div>
+<details id="startup-diagnostics" hidden open><summary>安装器启动诊断</summary><pre id="startup-error"></pre><p>请从 <a href="https://github.com/donne1226/attitude-indicator/releases/tag/v0.2">v0.2 发布页</a> 下载 USB 安装包并解压。源码中的模板不能直接安装。</p></details>
+<div class="support"><details><summary>首次安装与校准</summary><p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择「清除设备数据」清除旧数据。重装本项目时，保持该选项未勾选即可保留设置。</p><p>若烧录时已在桌面完成自动校准，装回座舱后让模型保持水平静止，短按 PWR 重新校准，或重新上电自动校准。</p></details><details><summary>没有串口，或校准一直不动</summary><p>先关闭其他串口工具，重新插拔 USB 数据线。仍无法连接时，完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p><p>能够启动但校准进度长期为零？使用<a href="#diagnostics">设备诊断</a>查看实时读数，并导出报告反馈。</p></details></div>
+<p class="connection-help">空速、高度与航向目前为模拟数据；真实姿态来自板载六轴 IMU。仅适用于上方指定板型。</p>
+</div>
+<div id="diagnosticsPage" hidden>
+<section class="hero">
+ <div><div class="eyebrow">DEVICE DIAGNOSTICS</div><h1>设备硬件诊断</h1><p>检查传感器、通信、电源与系统资源，重点定位 IMU 和校准异常。检测结果用中文解释，支持导出完整报告。</p></div>
+ <div class="hero-actions"><button class="primary" id="connect">连接设备</button><button id="disconnect" hidden>断开连接</button><button id="importLog">导入日志</button><button class="quiet" id="example">查看示例</button></div>
+ <input class="file-input" id="logFile" type="file" accept=".txt,.log,text/plain" aria-label="选择诊断日志文件">
+</section>
+<div class="diagnostic-actions"><div><span class="status-dot active"></span><span id="refreshRate">连接后启用 20 Hz 实时数据</span></div><button id="imuSelfTest" disabled>IMU 内置自检</button><button id="stationaryTest" disabled>采集 10 秒静止数据</button><button id="memoryTest" disabled>内存与程序检查</button><button id="sdTest" disabled>SD 卡只读识别</button></div>
+<p class="test-notice" id="testNotice" role="status">先固定静止观察；IMU 自检会短暂停止姿态采样，结束后自动恢复配置并重新校准。内存检查只使用临时分配区域。</p>
+<div class="notice" id="sourceNotice" hidden><div><strong id="sourceTitle"></strong><p id="sourceDescription"></p></div><button class="small quiet" id="exitSource">退出预览</button></div>
+<section class="analysis" id="analysis" data-tone="neutral" aria-live="polite">
+ <span class="analysis-icon" id="analysisIcon" aria-hidden="true">◇</span><div><h2 id="analysisTitle">等待连接开发板</h2><p id="analysisDescription">用 USB 数据线连接开发板，关闭其他串口工具，再点击连接设备。</p></div><span class="state-code" id="stateCode">STANDBY</span>
+</section>
+<div class="diag-grid">
+ <section class="panel calibration" aria-label="校准进度"><div class="panel-head"><h2>静止校准</h2><span class="meta">STABILITY WINDOW</span></div>
+  <div class="ring-wrap"><svg viewBox="0 0 218 218" aria-hidden="true"><circle class="inner" cx="109" cy="109" r="96"/><circle class="track" cx="109" cy="109" r="82"/><circle class="fill" id="progressArc" cx="109" cy="109" r="82"/></svg><div class="ring-reading"><b><output id="progress">--</output><span>%</span></b><small id="sampleCount">等待样本 / 400</small></div></div>
+  <p class="cal-caption" id="calibrationHint">完成一个连续稳定窗口后归零</p>
+  <div class="mini-stats"><div><span>最高样本进度</span><b id="peak">--</b></div><div><span>条件拒绝次数</span><b id="reject">--</b></div></div>
+  <div class="cal-bottom"><button id="calibrate" disabled>重新校准</button><p>按实际安装方向摆好并保持静止，点击后会重新定义姿态零点。</p></div>
+ </section>
+ <section class="panel gyro-panel" aria-label="陀螺仪读数"><div class="panel-head"><h2>三轴陀螺仪</h2><span class="meta">RAW / °/s</span></div>
+  <div class="gyro-values"><div class="axis-x"><span>X</span><output id="gyroX">--</output><small>°/s</small></div><div class="axis-y"><span>Y</span><output id="gyroY">--</output><small>°/s</small></div><div class="axis-z"><span>Z</span><output id="gyroZ">--</output><small>°/s</small></div></div>
+  <div class="accel-strip"><span>原始加速度 / g</span><output id="accelRaw">-- / -- / --</output><span>IMU 温度</span><output id="imuTemperature">-- °C</output></div><div class="chart"><span class="chart-label top" id="chartMax">+5</span><span class="chart-label zero">0</span><span class="chart-label bottom" id="chartMin">−5</span><svg viewBox="0 0 650 132" preserveAspectRatio="none" role="img" aria-label="最近三轴陀螺仪趋势（约 10 秒）"><path class="grid" d="M0 2h650M0 66h650M0 130h650M130 0v132M260 0v132M390 0v132M520 0v132"/><path id="traceX" class="trace" stroke="#68f0c4"/><path id="traceY" class="trace" stroke="#65cfff"/><path id="traceZ" class="trace" stroke="#f1be6b"/></svg><div class="chart-empty" id="chartEmpty">等待陀螺仪数据</div></div>
+ </section>
+ <div class="metrics" aria-label="关键指标"><dl class="metric"><dt>加速度模长</dt><dd><output id="gravity">--</output> <small>g</small></dd></dl><dl class="metric"><dt>有效采样率</dt><dd><output id="sampleHz">--</output> <small>Hz</small></dd></dl><dl class="metric"><dt>表盘帧率</dt><dd><output id="fps">--</output> <small>FPS</small></dd></dl><dl class="metric"><dt>数据更新时间</dt><dd><output id="dataAge">--</output> <small id="ageUnit">s</small></dd></dl></div>
+ <section class="health" aria-label="采样故障计数"><div><span>失效读数</span><b id="invalid">--</b></div><div><span>采样中断</span><b id="gaps">--</b></div><div><span title="电脑未读取或串口缓冲不足时，固件跳过的性能日志；不是 IMU 丢样本">性能日志跳过</span><b id="drops">--</b></div></section>
+</div>
+<section class="panel hardware-section"><div class="panel-head"><h2>硬件检测结果</h2><span id="hardwareSummary" class="meta">等待检测数据</span></div><div id="hardwareResults" class="hardware-checks"></div><details class="hardware-scope"><summary>检测覆盖范围与人工检查</summary><p>自动检查 IMU 身份、配置、温度、通信和采样，读取电源管理、触摸及按键接口、显示同步和系统资源。手动检测可运行 IMU 电静力自检、RAM 最多 16 KB（连续空间不足时缩小） / PSRAM 最多 64 KB 临时区图案检查、运行程序镜像校验。</p><p>请人工核对屏幕坏点、颜色、触摸全区域和按键动作。低频电压读数无法检测纹波；小块内存检查不代表整颗内存或 Flash 全部通过；设置存储仅验证已能打开，未写入测试数据。RTC 只读检查接口、秒变化与停振标志；音频只检查芯片接口，未启用录放音；SD 卡检查只读取卡信息与首扇区，会临时占用 GPIO1/2/3。Wi-Fi/蓝牙射频、选配 GNSS 和外接设备没有进行功能测试。自检失败可能来自通信、供电或板型差异，需结合多项结果排查。</p></details></section>
+<p id="exportStatus" class="export-status" role="status" hidden></p><section class="panel console-panel"><div class="panel-head console-head"><h2>原始串口日志</h2><span class="meta" id="lineCount">0 LINES</span><label class="push"><input type="checkbox" id="onlyDiagnostic">仅看诊断</label><button class="small quiet" id="pause">暂停滚动</button><button class="small quiet" id="clear">清空记录</button><button class="small" id="export" disabled>导出诊断报告</button></div><pre class="console" id="console" tabindex="0" aria-label="原始串口日志">尚未收到日志。连接开发板，或导入此前保存的日志文件。</pre><div class="console-foot"><span id="captureState">尚未开始采集</span><span>115200 BAUD · 8N1 · LOCAL ONLY</span></div></section>
+<p class="connection-help" id="connectionHelp">请在电脑 Chrome 或 Edge 中打开。安装与诊断共用一个连接，切换页面无需重新选择串口；请关闭其他串口监视器。</p>
+<noscript>请启用 JavaScript 后使用设备诊断。</noscript>
+</div>
+</main>
+<footer class="foot"><span>固件 __FIRMWARE_VERSION__ · 安装器 r__INSTALLER_REVISION__ · 离线运行</span><a href="https://github.com/donne1226/attitude-indicator" target="_blank" rel="noreferrer">开源项目</a></footer>
+</div>
+<dialog id="reportDialog" class="report-dialog" aria-labelledby="reportTitle"><header><div><h2 id="reportTitle">诊断报告已生成</h2><p id="reportFilename" class="mono"></p></div><button id="reportClose" class="small quiet" aria-label="关闭报告预览">关闭</button></header><p id="reportFeedback" role="status"></p><label for="reportContents">报告预览（可选中复制）</label><textarea id="reportContents" readonly spellcheck="false"></textarea><div class="report-actions"><button id="reportCopy">复制报告</button><a id="reportDownload" class="button primary" download>下载报告</a></div></dialog>
   <script type="application/json" id="firmware">__FIRMWARE_PAYLOAD__</script>
   <script>
     (function () {
       var loading = document.querySelector("#loading");
-      var installer = document.querySelector("esp-web-install-button");
+      var installer = document.querySelector("#installerControl");
       var pending = true, timer;
       function fail(message, error) {
         if (!pending) return;
@@ -119,7 +111,7 @@
       window.addEventListener("error", function (event) { window.installerStartup.fail(event.error || event.message); });
       window.addEventListener("unhandledrejection", function (event) { window.installerStartup.fail(event.reason); });
       if (/^__[A-Z_]+__$/.test(document.querySelector("#firmware").textContent.trim())) {
-        fail("当前文件是未打包的源码模板，不能直接安装。请从下方发布页下载 USB 安装包 ZIP，解压后打开 Install-Attitude-Indicator.html。");
+        fail("当前文件是未打包的源码模板，不能直接安装。请从发布页下载 USB 安装包 ZIP，解压后打开 安装器.html。");
       } else if (!window.isSecureContext) {
         fail("当前页面不允许访问 USB 串口。请解压安装包，用电脑上的 Chrome 或 Edge 直接打开 HTML；在线页面需使用 HTTPS。");
       } else if (!navigator.serial || typeof navigator.serial.requestPort !== "function" || !window.customElements) {
@@ -133,14 +125,15 @@
       }
     })();
   </script>
+  <script src="diagnostics-core.js"></script>
   <script>
     (function () {
       if (!window.installerStartup || !window.installerStartup.canStart) return;
       try {
         __INSTALLER_BUNDLE__
 
-        if (!customElements.get("esp-web-install-button")) throw new Error("烧录组件未完成注册");
-        const installer = document.querySelector("esp-web-install-button");
+        if (!customElements.get("ewt-install-dialog")) throw new Error("烧录组件未完成注册");
+        const installer = document.querySelector("#installerControl");
         const firmware = JSON.parse(document.querySelector("#firmware").textContent);
         const parts = firmware.parts.map(({data, offset}) => {
           const bytes = Uint8Array.from(atob(data), byte => byte.charCodeAt(0));
@@ -154,7 +147,7 @@
           new_install_improv_wait_time: 0,
           builds: [{chipFamily: "ESP32-S3", parts}],
         };
-        installer.manifest = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
+        window.installerManifest = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: "application/json"}));
         window.installerStartup.ready();
       } catch (error) {
         console.error(error);
@@ -162,5 +155,7 @@
       }
     })();
   </script>
+<script src="diagnostics.js"></script>
+<script src="service.js"></script>
 </body>
 </html>

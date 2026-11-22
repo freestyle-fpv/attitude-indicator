@@ -2,5 +2,6 @@
 .arduino/
 vendor/
 build/
+output/
 __pycache__/
 .DS_Store

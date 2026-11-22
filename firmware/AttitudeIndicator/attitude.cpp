@@ -65,10 +65,13 @@ float AttitudeFilter::roll() const {
   return Degrees*std::atan2(2*(q[0]*q[1]+q[2]*q[3]),1-2*(q[1]*q[1]+q[2]*q[2]));
 }
 void StationaryCalibration::reset() {
+  rejection_=Rejection::None;
   count_=pending_=0;gyroMean_={0,0,0};accelMean_={0,0,0};first_={0,0,0};
   gyroSum_=accelSum_={0,0,0};
 }
 bool StationaryCalibration::add(Vec3 a,Vec3 w) {
+  rejection_=Rejection::None;
+  const auto reject=[this](Rejection reason){reset();rejection_=reason;return false;};
   const float n=norm(a);
   // Before calibration, constant gyro bias is not evidence of motion. This
   // board measured ~1.5 deg/s at rest. Bound the plausible raw bias separately
@@ -77,11 +80,13 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   constexpr float MaxRateChange=0.01308997f; // 0.75 deg/s
   // Use the same gravity gate as fusion. This board reads about 0.91 g when
   // supported on some edges; the separate variation checks still reject motion.
-  if(!finite(a)||!finite(w)||n<=0.85f||n>=1.15f||norm(w)>MaxRawRate) {reset();return false;}
+  if(!finite(a)||!finite(w))return reject(Rejection::Nonfinite);
+  if(n<=0.85f||n>=1.15f)return reject(Rejection::GravityRange);
+  if(norm(w)>MaxRawRate)return reject(Rejection::GyroRate);
   if(count_>=RequiredSamples)return true;
   if(count_>0){
     const Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
-    if(norm(delta)>.075f){reset();return false;}
+    if(norm(delta)>.075f)return reject(Rejection::AccelerationMotion);
   }
   // At 200 Hz a block spans 20 ms. Compare its mean with the stationary
   // reference so isolated sensor jitter cannot restart a two-second wait.
@@ -96,11 +101,11 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   gyroSum_=accelSum_={0,0,0};pending_=0;
   if(count_>0){
     Vec3 rateChange{w.x-gyroMean_.x,w.y-gyroMean_.y,w.z-gyroMean_.z};
-    if(norm(rateChange)>MaxRateChange){reset();return false;}
+    if(norm(rateChange)>MaxRateChange)return reject(Rejection::GyroVariation);
   }
   if(count_==0)first_=a;
   Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
-  if(norm(delta)>0.025f) {reset();return false;}
+  if(norm(delta)>0.025f)return reject(Rejection::AccelerationMotion);
   count_+=Block;
   const float weight=float(Block)/count_;
   gyroMean_.x+=(w.x-gyroMean_.x)*weight;

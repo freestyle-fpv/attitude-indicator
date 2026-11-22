@@ -4,14 +4,14 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const template = fs.readFileSync(path.join(__dirname, "../installer/index.html"), "utf8");
-const registeredBundle = 'customElements.define("esp-web-install-button", class {});';
+const registeredBundle = 'customElements.define("ewt-install-dialog", class {});';
 
 function page({serial = true, secure = true, bundle = registeredBundle,
                payload = '{"version":"test","parts":[{"data":"AQIDBA==","offset":65536}]}',
                skipInstaller = false} = {}) {
   const elements = {
     "#loading": {hidden: false, textContent: "正在加载安装器…"},
-    "esp-web-install-button": {hidden: true},
+    "#installerControl": {hidden: true},
     "#firmware": {textContent: payload},
     "#startup-diagnostics": {hidden: true},
     "#startup-error": {textContent: ""},
@@ -32,18 +32,18 @@ function page({serial = true, secure = true, bundle = registeredBundle,
   const scripts = Array.from(source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))
     .filter(match => !match[1].includes("application/json"));
   for (const [index, script] of scripts.entries()) {
-    if (skipInstaller && index === scripts.length - 1) continue;
+    if (skipInstaller && index === 2) continue;
     try {
       vm.runInContext(script[2], context);
     } catch (error) {
       if (listeners.error) listeners.error({error, message: error.message});
     }
   }
-  return {elements, timers, listeners};
+  return {elements, timers, listeners, context};
 }
 
 function failed(result) {
-  assert.equal(result.elements["esp-web-install-button"].hidden, true);
+  assert.equal(result.elements["#installerControl"].hidden, true);
   assert.equal(result.elements["#loading"].hidden, false);
   assert.doesNotMatch(result.elements["#loading"].textContent, /正在加载/);
   assert.equal(result.elements["#startup-diagnostics"].hidden, false);
@@ -83,9 +83,9 @@ async function main() {
 
   const ready = page();
   assert.equal(ready.elements["#loading"].hidden, true);
-  assert.equal(ready.elements["esp-web-install-button"].hidden, false);
+  assert.equal(ready.elements["#installerControl"].hidden, false);
   assert.equal(ready.timers.size, 0);
-  const manifest = await (await fetch(ready.elements["esp-web-install-button"].manifest)).json();
+  const manifest = await (await fetch(ready.context.installerManifest)).json();
   assert.equal(manifest.version, "test");
   assert.equal(manifest.builds[0].chipFamily, "ESP32-S3");
   assert.equal(manifest.builds[0].parts[0].offset, 65536);

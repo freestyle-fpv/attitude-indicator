@@ -70,6 +70,28 @@ int main(){
   check(c.count()==0,"changing gravity direction restarts stationary window");
   c.add({NAN,0,0},{0,0,0});
   check(c.count()==0,"calibration rejects nonfinite acceleration");
+  check(c.rejection()==StationaryCalibration::Rejection::Nonfinite,
+    "calibration diagnostics identify nonfinite samples");
+  c.add({-.298f,-.375f,.917f},{.2f,0,0});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroRate,
+    "normal-gravity startup blockage identifies excessive raw gyro rate");
+  c.add({0,0,.8f},{0,0,0});
+  check(c.rejection()==StationaryCalibration::Rejection::GravityRange,
+    "calibration diagnostics distinguish invalid gravity from gyro motion");
+  c.reset();
+  for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,.026f,0});
+  for(unsigned i=0;i<4;++i)c.add({0,0,-1},{0,.049f,0});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroVariation,
+    "calibration diagnostics identify a changing gyro block mean");
+  c.reset();
+  for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0,0});
+  for(unsigned i=0;i<4;++i)c.add({.04f,0,-1},{0,0,0});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::AccelerationMotion,
+    "calibration diagnostics identify gravity-direction changes below the instant-motion gate");
+  c.reset();
+  for(unsigned i=0;i<400;++i)ready=c.add({-.298f,-.375f,.917f},{.004f,.026f,.006f});
+  check(ready&&c.rejection()==StationaryCalibration::Rejection::None,
+    "reported 1.03g gravity vector completes calibration when the gyro is stable");
   std::printf("%d failures\n",failures);
   return failures?1:0;
 }

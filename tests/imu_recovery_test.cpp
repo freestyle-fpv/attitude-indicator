@@ -21,7 +21,7 @@ struct Step {
   Vec3 acceleration,gyro;
   uint32_t calibrationId=0;
   UsbSide side=UsbSide::Left;
-  bool initOk=true;
+  bool initOk=true,selfTest=false;
   Step(uint32_t t,SampleResult r,Vec3 a={0,0,-1},Vec3 w={0,0,0}):ms(t),result(r),acceleration(a),gyro(w){}
 };
 static std::vector<Step> steps;
@@ -29,7 +29,17 @@ static std::vector<Snapshot> observed;
 static size_t cursor=0;
 static int failures=0;
 static UsbSide initialSide=UsbSide::Left;
-static std::atomic<bool> menuClick{false};
+static std::atomic<bool> menuClick{false},imuSelfTestRequested{false};
+static std::atomic<uint32_t> bootClicks{0};
+static instrument::HardwareState imuHardware;
+// This harness replaces hardware I/O only; self-test protocol has its own bus tests.
+struct ImuTestBus{
+ bool read(uint8_t,uint8_t*,size_t){return false;}
+ bool write(uint8_t,uint8_t){return false;}
+ void wait(){}
+};
+void pollHardware(uint32_t){}
+
 struct Finished {};
 uint32_t millis(){return steps[cursor].ms;}
 uint32_t micros(){return millis()*1000u;}
@@ -42,6 +52,7 @@ SampleResult readSample(Vec3& a,Vec3& w,Vec3& raw,UsbSide){
   const auto& step=steps[cursor];a=raw=step.acceleration;w=step.gyro;return step.result;
 }
 int xQueueReceive(unsigned queue,CalibrationRequest* command,unsigned){
+  if(steps[cursor].selfTest)imuSelfTestRequested.store(true);
   if(queue!=commands||!steps[cursor].calibrationId)return 0;
   *command={steps[cursor].calibrationId,steps[cursor].side};return pdTRUE;
 }
@@ -57,7 +68,7 @@ static void check(bool ok,const char* name){
 }
 static bool near(float a,float b,float tolerance=.3f){return std::fabs(a-b)<tolerance;}
 static void run(){
-  cursor=0;observed.clear();
+  cursor=0;observed.clear();imuHardware=instrument::HardwareState();imuSelfTestRequested.store(false);bootClicks.store(0);
   try{samplingTask(nullptr);}catch(const Finished&){}
 }
 static void calibrated(uint32_t start=1000){
@@ -100,9 +111,11 @@ int main(){
   calibrated();steps.emplace_back(4150,SampleResult::NotReady);recovered(4155);run();
   check(observed[600].sampleFault,"data-ready timeout marks the old pose unavailable");
   check(observed.back().calibrated&&!observed.back().sampleFault&&near(observed.back().roll,30.15f,.02f),"data-ready timeout recovers while rotating");
+  check(observed.back().imuSampleGaps==1,"data-ready timeout is counted once after recovery");
 
   calibrated();recovered(4200);run();
   check(observed.back().calibrated&&!observed.back().sampleFault&&near(observed.back().roll,30.15f,.02f),"scheduler gap skips missing interval without re-zeroing");
+  check(observed.back().imuSampleGaps==1,"long integration interval is reported as one sample gap");
 
   calibrated();
   for(uint32_t ms=4000;ms<=5000;ms+=5){
@@ -134,6 +147,8 @@ int main(){
   steps.emplace_back(2000,SampleResult::Invalid);
   for(unsigned i=0;i<399;++i)steps.emplace_back(2005+i*5,SampleResult::Valid);
   run();check(!observed.back().calibrated,"startup fault restarts the uncompleted stationary window");
+  check(observed.back().imuInvalidSamples==1&&observed.back().calibrationPeak==396,
+    "startup diagnostics retain invalid sample count and best completed calibration window");
   steps.emplace_back(4000,SampleResult::Valid);run();
   check(observed.back().calibrated,"startup still needs a complete fresh 400-sample calibration");
 
@@ -150,5 +165,32 @@ int main(){
   run();
   check(!observed.back().calibrated&&observed.back().calibrationId==9,
     "fault during explicit recalibration cannot restore the discarded old calibration");
+
+  steps.clear();
+  for(unsigned i=0;i<600;++i)steps.emplace_back(1000+i*5,SampleResult::Valid,
+    Vec3{-.298f,-.375f,.917f},Vec3{.2f,0,0});
+  run();
+  check(!observed.back().calibrated&&observed.back().calibrationCount==0&&
+    observed.back().calibrationRejects==600&&
+    observed.back().calibrationReason==instrument::StationaryCalibration::Rejection::GyroRate,
+    "reported zero-progress startup exposes gyro rejection without falsely completing calibration");
+  check(observed.back().imuInvalidSamples==0&&observed.back().imuSampleGaps==0,
+    "valid but nonstationary readings are not reported as bus failures");
+  for(unsigned i=0;i<400;++i)steps.emplace_back(4000+i*5,SampleResult::Valid);
+  steps[600].calibrationId=12;run();
+  check(observed.back().calibrated&&observed.back().calibrationRejects==0&&
+    observed.back().calibrationPeak==400&&
+    observed.back().calibrationReason==instrument::StationaryCalibration::Rejection::None,
+    "new calibration request clears old blockage diagnostics and completes normally");
+  calibrated();steps.emplace_back(4000,SampleResult::Valid);steps.back().selfTest=true;
+  run();
+  check(!observed.back().calibrated&&observed.back().hardware.selfTestId==1,
+    "explicit IMU self-test invalidates the old calibration even after a failed self-test read");
+  check(!observed.back().hardware.testing&&observed.back().hardware.accelSelf.code==3,
+    "failed self-test reports communication failure and leaves test mode");
+  for(unsigned i=0;i<400;++i)steps.emplace_back(4005+i*5,SampleResult::Valid);
+  run();
+  check(observed.back().calibrated&&near(observed.back().roll,0),
+    "sampler restores normal operation and requires a fresh stationary zero after self-test");
   std::printf("%d failures\n",failures);return failures?1:0;
 }

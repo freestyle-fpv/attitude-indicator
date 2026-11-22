@@ -41,6 +41,8 @@
 
 校准按键实现与实板验证见 [统一校准](docs/shared-calibration-validation.md)。
 
+若上电后长期停在校准页、静止重启后进度仍为零，见 [上电校准诊断](docs/startup-calibration-diagnostics.md)。诊断版增加三轴陀螺仪、稳定性拒绝原因及采样故障计数，用于在故障板上定位；不会跳过校准或强行显示有效姿态。
+
 ## 姿态仪
 
 ![参考姿态预览](preview/reference.png)
@@ -90,26 +92,56 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 ## USB 一键安装
 
-当前发布版本为 **v0.1**，主分支为 `master`。在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/v0.1) 下载 `Attitude-Indicator-v0.1-USB-Installer-r2.zip`。
+当前发布版本为 **v0.2**，主分支为 `master`。在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/v0.2) 下载 `Attitude-Indicator-v0.2-USB-Installer-r5.zip`。
 
-安装器修订版为 `Attitude-Indicator-v0.1-USB-Installer-r2.zip`，固件与 v0.1 相同。源码中的 `installer/index.html` 是打包模板，没有内嵌固件和烧录工具，不能直接安装；若页面版本仍显示 `__FIRMWARE_VERSION__`，请改用发布页的安装包，不要下载源码 ZIP 代替安装包。
+v0.2 包含固件和安装器 r5，合并安装与中文硬件诊断。源码中的 `installer/index.html` 是打包模板，没有内嵌固件和烧录工具，不能直接安装；若页面版本仍显示 `__FIRMWARE_VERSION__`，请改用发布页的安装包，不要下载源码 ZIP 代替安装包。
 
 修订版会在误开源码模板、浏览器不支持、页面权限受限或脚本启动失败时显示具体提示和启动诊断；反馈时请附上诊断内容。不要在聊天软件或网盘的文件预览中运行安装页。
 
-仅适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。解压 USB 安装包，在电脑上的 Chrome 或 Edge 打开 `Install-Attitude-Indicator.html`。用 USB 数据线连接开发板，点击「安装固件」，选中新出现的串口，按提示选择 **Install → Next → Install**。浏览器需要用户亲自选择串口。安装页内含预编译固件和 ESP Web Tools，可离线运行。
+仅适用于 Waveshare ESP32-S3-Touch-AMOLED-1.75。解压 USB 安装包，在电脑上的 Chrome 或 Edge 打开 `安装器.html`。用 USB 数据线连接开发板，点击「安装固件」，选中新出现的串口，按提示选择 **安装 → 下一步 → 安装**。浏览器需要用户亲自选择串口。安装页内含预编译固件和 ESP Web Tools，可离线运行。
 
-重装本项目时保持 **Erase device** 未勾选，可保留安装方向和 FPS 设置。安装完成后关闭安装页，按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准，无需按键。若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。
+重装本项目时保持 **清除设备数据** 未勾选，可保留安装方向和 FPS 设置。安装完成后关闭安装窗口，按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准，无需按键。若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。
 
 发布新版本时，用 Python 3.9+ 和 esbuild（本包使用 0.25.12）在已配置好的开发环境中生成安装包：
 
 ```sh
 sh tools/build.sh
-python3 tools/package_installer.py --version v0.1
+python3 tools/package_installer.py --version v0.2
 ```
 
 安装页启动回归测试为 `node tests/installer_loading_test.js`（Node.js 18+），也包含在 `sh tools/test.sh` 中。
 
-发布后续版本时，将 `v0.1` 替换为目标版本号。ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
+发布后续版本时，更新 `firmware/AttitudeIndicator/firmware_version.h`，并将 `v0.2` 替换为目标版本号。ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
+
+## 网页设备诊断
+
+v0.2 的安装器 r5 将安装与设备诊断合并为一个 `安装器.html`，固件、烧录工具、样式和四张表盘截图均内嵌，可离线运行。首次操作选择一次串口；切换安装和诊断无需重新选择。安装窗口会独占串口，关闭后自动恢复诊断。如果拔出 USB 或系统重新枚举使串口失效，则需重新连接。
+
+- 实时校准环、三轴陀螺仪曲线、加速度模长、有效采样率、姿态有效状态和故障计数。
+- 中文显示最近一次稳定性拒绝原因；旧固件缺少的字段保持空缺，提示安装诊断固件。
+- 导入 `.txt` / `.log` 历史日志，或一键导出包含原始记录的诊断报告。所有日志在本地处理。
+- 「查看示例」明确标注模拟数据，连接实机时清空示例。数据过期、设备断开与历史导入会分别标识。
+- 页面与固件日志均有限缓冲，电脑不读取时不会阻塞仪表；校准条件保持原行为。
+
+安装弹窗已汉化；系统原生串口选择器的语言由浏览器/系统决定。四表盘预览可自动轮播、暂停、通过箭头/圆点/键盘切换，截图不显示 FPS；开启系统减少动态效果时默认暂停。
+
+串口需要电脑 Chrome / Edge 与用户首次手动选择设备。诊断版仍需在反馈者的故障板上复测，新增诊断功能不代表已经修复该板的校准问题。
+
+### 硬件诊断 caldiag3
+
+新增 IMU 身份、配置、温度、时间戳，通信失败、短读、饱和、未就绪计数及三轴原始加速度；同时检查电源管理和电压、触摸及按键事件、显示同步、内存资源、设置存储打开状态与复位原因。
+
+- 连接后发送 `J` 续订：IMU 数据目标 20 Hz，硬件快照 1 Hz；15 秒未续订自动停流。`K` 停止高频流。输出保持零等待，网页控制台最多每 250ms 重绘。
+- 「采集 10 秒静止数据」计算网页样本的陀螺仪均值、标准差和加速度范围，提供中文排查建议；不能代替固件 200 Hz 的校准判断。
+- 「IMU 内置自检」发送 `S`，检查加速度计及陀螺仪的电静力响应。等待均有超时；结束后恢复配置并重新校准，保留原有校准门槛。
+- 「内存与程序检查」发送 `M`：仅对新分配的 RAM 最多 16 KB（连续空间不足时缩小）、PSRAM 最多 64 KB 做图案写读，并校验运行程序镜像，不覆盖用户设置，不做 Flash 擦写测试。
+- 屏幕坏点、颜色、触摸全区域和按键实际动作仍需人工核对。电压读数不能检测纹波；小块内存检查不代表整颗存储器完整。缺字段、未检测或过期数据不标为通过。
+
+IMU 自检依据 [QMI8658A 手册第 15 章](https://files.waveshare.com/wiki/common/QMI8658A_Datasheet_Rev_A.pdf)。本项目使用独立、受测试覆盖的寄存器流程，未修改供应商库。
+
+RTC 只读检查秒变化、停振和停走标志；音频只读检查 ES8311、ES7210 接口，不启用录放音。手动「SD 卡只读识别」发送 `N`，使用 GPIO1/2/3 识别卡并读取首扇区，不挂载文件系统、不格式化、不写文件；未识别到卡不会直接判为卡槽损坏。板卡引脚依据 [官方硬件参考](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/HARDWARE_REFERENCE.md)。Wi-Fi/蓝牙射频、选配 GNSS、音频录放和外接设备未做功能测试。
+
+「导出诊断报告」会显示报告预览并请求浏览器下载，页面明确提示检查下载目录。下载被阻止时可在预览中再次下载或复制完整报告，页面不会把发起下载误称为已保存到磁盘。
 
 ## 编译和烧录
 

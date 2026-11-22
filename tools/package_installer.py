@@ -12,6 +12,9 @@ import tarfile
 import tempfile
 import urllib.request
 import zipfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from localize_web_tools import localize_dialog, theme_dialog
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,7 +22,7 @@ BUILD = ROOT / "build" / "firmware"
 SKETCH = "AttitudeIndicator.ino"
 CORE = ROOT / ".arduino/data/packages/esp32/hardware/esp32/3.3.10"
 WEB_TOOLS_VERSION = "10.5.2"
-INSTALLER_REVISION = 2
+INSTALLER_REVISION = 5
 WEB_TOOLS_URL = f"https://registry.npmjs.org/esp-web-tools/-/esp-web-tools-{WEB_TOOLS_VERSION}.tgz"
 WEB_TOOLS_SHA512 = (
     "i5qsHv1bnrb/9gmKEN7qIaDTMOMy6OctrgFVXStrU2s79erY2Z7IKydveNk0"
@@ -88,15 +91,41 @@ def build_web_tools(esbuild, cache):
             for member in tar.getmembers():
                 path = Path(member.name)
                 if member.isfile() and str(path.parent) == "package/dist/web" and path.suffix == ".js":
-                    (stage / path.name).write_bytes(tar.extractfile(member).read())
+                    content = tar.extractfile(member).read().decode("utf-8")
+                    if path.name.startswith("install-dialog-"):
+                        content = localize_dialog(content)
+                    if path.name.startswith("styles-"):
+                        content = theme_dialog(content)
+                    (stage / path.name).write_text(content, encoding="utf-8")
         result = subprocess.run(
-            [esbuild, str(stage / "install-button.js"), "--bundle", "--format=iife",
+            [esbuild, str(stage / "install-dialog-ChRWE6GU.js"), "--bundle", "--format=iife",
              "--platform=browser", "--target=es2019", "--minify", "--legal-comments=inline"],
             check=True, capture_output=True, text=True,
         )
     if "</script" in result.stdout.lower():
         raise ValueError("The flasher bundle cannot be safely embedded in the HTML")
     return result.stdout, license_text
+
+
+def service_page(name):
+    """Inline local service assets so each exported HTML works offline alone."""
+    page = (ROOT / "installer" / name).read_text(encoding="utf-8")
+    css = (ROOT / "installer" / "service.css").read_text(encoding="utf-8")
+    page = page.replace('<link rel="stylesheet" href="service.css">', f"<style>{css}</style>")
+    for script in ("diagnostics-core.js", "diagnostics.js", "service.js"):
+        marker = f'<script src="{script}"></script>'
+        if marker not in page:
+            continue
+        source = (ROOT / "installer" / script).read_text(encoding="utf-8")
+        if "</script" in source.lower():
+            raise ValueError(f"Cannot embed {script}: closing script tag")
+        page = page.replace(marker, f"<script>{source}</script>")
+    for name in ("attitude", "hud", "airspeed", "altimeter"):
+        marker = f"screenshots/{name}.png"
+        if marker in page:
+            image = ROOT / "installer" / "screenshots" / f"{name}.png"
+            page = page.replace(marker, "data:image/png;base64," + base64.b64encode(image.read_bytes()).decode("ascii"))
+    return page
 
 
 def main():
@@ -114,12 +143,14 @@ def main():
     parts = firmware_parts()
     bundle, license_text = build_web_tools(args.esbuild, cache)
     payload = json.dumps({"version": args.version, "parts": parts}, separators=(",", ":"))
-    source = (ROOT / "installer" / "index.html").read_text(encoding="utf-8")
+    source = service_page("index.html")
     page = source.replace("__FIRMWARE_VERSION__", args.version)
     page = page.replace("__INSTALLER_REVISION__", str(INSTALLER_REVISION))
     page = page.replace("__FIRMWARE_PAYLOAD__", payload).replace("__INSTALLER_BUNDLE__", bundle)
-    page_name = "Install-Attitude-Indicator.html"
+    page_name = "安装器.html"
     (output / page_name).write_text(page, encoding="utf-8")
+    for legacy in ("Install-Attitude-Indicator.html", "Diagnostic-Attitude-Indicator.html", "安装页器.html"):
+        (output / legacy).unlink(missing_ok=True)
     archive = output / f"Attitude-Indicator-{args.version}-USB-Installer-r{INSTALLER_REVISION}.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as package:
         package.writestr(page_name, page)
@@ -130,11 +161,16 @@ def main():
             f"安装器修订：r{INSTALLER_REVISION}\n\n"
             f"解压后在电脑 Chrome 或 Edge 中打开 {page_name}。\n"
             "用 USB 数据线连接开发板，点击「安装固件」，选择新出现的串口，\n"
-            "依次点击 Install → Next → Install。安装完成后关闭浏览器标签页。\n"
+            "按中文提示选择「安装」→「下一步」→「安装」。完成后关闭安装窗口。\n"
             "按实际方向装好开发板，让模型保持水平静止，再重新上电，仪表会自动校准，无需按键。\n"
             "若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。\n"
-            "重装本项目时保持 Erase device 未勾选，即可保留安装方向和 FPS 设置。\n"
+            "重装时不勾选「清除设备数据」，即可保留安装方向和 FPS 设置。\n"
             "安装页内含固件和烧录工具，可以离线运行。\n\n"
+            "设备诊断：在同一页面点击顶部「设备诊断」。安装与诊断共用已选择的串口。\n"
+            "关闭安装窗口后自动恢复诊断；切换页面无需重新连接。请关闭其他串口监视器。\n"
+            "如果 USB 被拔出或系统重新枚举导致串口失效，请点击连接设备重新选择。\n"
+            "诊断页可查看校准进度、传感器读数和异常原因，导入日志或一键导出诊断报告。\n"
+            "「查看示例」展示模拟数据，连接实机时会清空示例。所有诊断数据仅在本地处理。\n\n"
             "固件源码：https://github.com/donne1226/attitude-indicator\n"
         ))
         package.writestr("licenses/ESP-Web-Tools.txt", (

@@ -1,6 +1,11 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Preferences.h>
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
+#include <esp_system.h>
+#include <driver/sdmmc_host.h>
+#include <sdmmc_cmd.h>
 #include <Arduino_GFX_Library.h>
 #include <SensorQMI8658.hpp>
 #define XPOWERS_CHIP_AXP2101
@@ -14,6 +19,7 @@
 #include "attitude.h"
 #include "renderer.h"
 #include "diagnostics.h"
+#include "imu_diagnostics.h"
 #include "fps_overlay.h"
 #include "fast_panel.h"
 #include "display_pipeline.h"
@@ -63,9 +69,96 @@ std::atomic<bool> menuClick{false};
 std::atomic<bool> touchPending{false};
 std::atomic<uint32_t> touchPackets{0},touchErrors{0},touchPosition{0},swipeCount{0};
 bool touchReady=false,powerButtonReady=false;
+instrument::DiagnosticLease diagnosticLease;
+std::atomic<bool> hardwareTelemetryActive{false};
+std::atomic<bool> imuSelfTestRequested{false};
+std::atomic<uint32_t> bootClicks{0};
+instrument::HardwareState imuHardware;
+struct MemoryDiagnostic {int ram=-1,psram=-1,flash=-1;uint32_t id=0,ramBytes=0,psramBytes=0;bool pending=false;} memoryDiagnostic;
+struct CardDiagnostic {uint32_t id=0;int result=-1;uint64_t bytes=0;bool pending=false;} cardDiagnostic;
+
+bool checkedRead(uint8_t address,uint8_t reg,uint8_t* data,size_t size){
+  Wire.beginTransmission(address);Wire.write(reg);
+  if(Wire.endTransmission(false)!=0){if(address==board::ImuAddress)++imuHardware.nack;return false;}
+  if(Wire.requestFrom(address,size,true)!=size){if(address==board::ImuAddress)++imuHardware.shortRead;return false;}
+  for(size_t i=0;i<size;++i)data[i]=Wire.read();return true;
+}
+struct ImuTestBus{
+  bool read(uint8_t reg,uint8_t* data,size_t n){return checkedRead(board::ImuAddress,reg,data,n);}
+  bool write(uint8_t reg,uint8_t value){Wire.beginTransmission(board::ImuAddress);Wire.write(reg);Wire.write(value);if(Wire.endTransmission()!=0){++imuHardware.nack;return false;}return true;}
+  void wait(){vTaskDelay(pdMS_TO_TICKS(5));}
+};
+void pollHardware(uint32_t now){
+  static uint32_t last=0;if(!hardwareTelemetryActive.load()||uint32_t(now-last)<1000)return;last=now;
+  uint8_t data[9];
+  if(checkedRead(board::ImuAddress,0,data,9)){
+    imuHardware.who=data[0];imuHardware.revision=data[1];imuHardware.ctrl2=data[3];imuHardware.ctrl3=data[4];imuHardware.ctrl7=data[8];
+  }else{imuHardware.who=imuHardware.revision=imuHardware.ctrl2=imuHardware.ctrl3=imuHardware.ctrl7=-1;}
+  imuHardware.altWho=imuHardware.who!=5&&checkedRead(0x6A,0,data,1)?int(data[0]):-1;
+  imuHardware.touch=probeTouch()?1:0;
+  uint8_t pins=0;imuHardware.expander=expanderRead(0,pins)?1:0;
+  imuHardware.button=powerButtonReady;imuHardware.pwrDown=(pins&board::PowerButtonMask)!=0;
+  imuHardware.bootDown=digitalRead(board::Boot)==LOW;imuHardware.bootClicks=bootClicks.load();
+  static uint32_t rtcChanged=0;static int rtcPrevious=-1;
+  imuHardware.rtc=checkedRead(0x51,0,data,7)?1:0;
+  if(imuHardware.rtc==1){
+    const uint8_t second=data[4]&0x7f;
+    imuHardware.rtcSec=(second&15)<=9&&(second>>4)<=5?(second>>4)*10+(second&15):-1;
+    imuHardware.rtcOs=bool(data[4]&0x80);imuHardware.rtcStop=bool(data[0]&0x20);
+    if(imuHardware.rtcSec!=rtcPrevious){imuHardware.rtcTick=rtcPrevious<0?-1:1;rtcPrevious=imuHardware.rtcSec;rtcChanged=now;}
+    else if(uint32_t(now-rtcChanged)>3000)imuHardware.rtcTick=0;
+  }
+  imuHardware.dac=checkedRead(0x18,0,data,1)?1:0;
+  imuHardware.microphone=checkedRead(0x40,0,data,1)?1:0;
+  imuHardware.pmu=checkedRead(0x34,3,data,1)&&data[0]==0x4A?1:0;
+  imuHardware.adc=-1;imuHardware.battery=imuHardware.vbusGood=-1;
+  imuHardware.vbusMv=imuHardware.systemMv=imuHardware.batteryMv=0;
+  if(imuHardware.pmu==1){
+    if(checkedRead(0x34,0,data,2)){imuHardware.battery=bool(data[0]&8);imuHardware.vbusGood=bool(data[0]&32);}
+    if(checkedRead(0x34,0x30,data,1))imuHardware.adc=data[0];
+    if(checkedRead(0x34,0x34,data,8)){
+      if(imuHardware.battery==1)imuHardware.batteryMv=((data[0]&0x1f)<<8)|data[1];
+      if(imuHardware.vbusGood==1)imuHardware.vbusMv=((data[4]&0x3f)<<8)|data[5];
+      imuHardware.systemMv=((data[6]&0x3f)<<8)|data[7];
+    }else imuHardware.adc=-1;
+  }
+}
+void runMemoryDiagnostic(){
+  ++memoryDiagnostic.id;
+  auto test=[](size_t bytes,uint32_t caps,int& result,uint32_t& tested){
+    auto* memory=static_cast<uint32_t*>(heap_caps_malloc(bytes,caps));
+    while(!memory&&bytes>1024){bytes/=2;memory=static_cast<uint32_t*>(heap_caps_malloc(bytes,caps));}
+    if(!memory){result=2;tested=0;return;}
+    result=instrument::testMemoryBlock(memory,bytes/4)?1:0;tested=bytes;heap_caps_free(memory);
+  };
+  test(16*1024,MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT,memoryDiagnostic.ram,memoryDiagnostic.ramBytes);
+  test(64*1024,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT,memoryDiagnostic.psram,memoryDiagnostic.psramBytes);
+  uint8_t digest[32];const auto* app=esp_ota_get_running_partition();
+  memoryDiagnostic.flash=app&&esp_partition_get_sha256(app,digest)==ESP_OK?1:0;
+  memoryDiagnostic.pending=false;
+}
+
 instrument::CalibrationSession calibrationSession;
 std::atomic<bool> calibrationClick{false};
 std::atomic<uint32_t> calibrationClicks{0};
+
+void runCardDiagnostic(){
+  ++cardDiagnostic.id;cardDiagnostic.bytes=0;cardDiagnostic.result=2;
+  sdmmc_host_t host=SDMMC_HOST_DEFAULT();host.flags=SDMMC_HOST_FLAG_1BIT;host.max_freq_khz=4000;
+  sdmmc_slot_config_t slot=SDMMC_SLOT_CONFIG_DEFAULT();slot.width=1;slot.clk=GPIO_NUM_2;slot.cmd=GPIO_NUM_1;slot.d0=GPIO_NUM_3;
+  slot.d1=slot.d2=slot.d3=slot.d4=slot.d5=slot.d6=slot.d7=GPIO_NUM_NC;
+  if(sdmmc_host_init()==ESP_OK){
+    sdmmc_card_t card={};
+    if(sdmmc_host_init_slot(host.slot,&slot)==ESP_OK&&sdmmc_card_init(&host,&card)==ESP_OK){
+      cardDiagnostic.bytes=uint64_t(card.csd.capacity)*512;
+      auto* sector=heap_caps_malloc(512,MALLOC_CAP_INTERNAL|MALLOC_CAP_DMA);
+      cardDiagnostic.result=sector&&sdmmc_read_sectors(&card,sector,0,1)==ESP_OK?1:0;
+      if(sector)heap_caps_free(sector);
+    }
+    sdmmc_host_deinit();
+  }
+  cardDiagnostic.pending=false;
+}
 
 bool expanderRead(uint8_t reg,uint8_t& value){
   Wire.beginTransmission(board::ExpanderAddress);Wire.write(reg);
@@ -163,12 +256,7 @@ void initializePanel(void* waiter) {
 
 // Exact-length checked I2C reads avoid treating an I2C error as data-ready.
 bool readImuRegisters(uint8_t reg,uint8_t* data,size_t size) {
-  Wire.beginTransmission(board::ImuAddress);
-  Wire.write(reg);
-  if(Wire.endTransmission(false)!=0)return false;
-  if(Wire.requestFrom(board::ImuAddress,size,true)!=size)return false;
-  for(size_t i=0;i<size;++i)data[i]=Wire.read();
-  return true;
+  return checkedRead(board::ImuAddress,reg,data,size);
 }
 
 bool initializeImu() {
@@ -183,11 +271,17 @@ bool initializeImu() {
 }
 
 SampleResult readSample(Vec3& acceleration,Vec3& gyro,Vec3& rawAcceleration,UsbSide side) {
-  uint8_t status=0,bytes[12];
+  uint8_t status=0,packet[17];
   if(!readImuRegisters(0x2E,&status,1))return SampleResult::Invalid;
-  if((status&3)!=3)return SampleResult::NotReady;
+  if((status&3)!=3){++imuHardware.notReady;return SampleResult::NotReady;}
   // AX..AZ and GX..GZ occupy one contiguous 12-byte register block.
-  if(!readImuRegisters(0x35,bytes,sizeof(bytes)))return SampleResult::Invalid;
+  if(!readImuRegisters(0x30,packet,sizeof(packet)))return SampleResult::Invalid;
+  const uint32_t stamp=uint32_t(packet[0])|(uint32_t(packet[1])<<8)|(uint32_t(packet[2])<<16);
+  static bool haveStamp=false;
+  if(haveStamp&&stamp==imuHardware.timestamp)++imuHardware.repeatedTimestamp;
+  haveStamp=true;imuHardware.timestamp=stamp;
+  imuHardware.temperature=int16_t(uint16_t(packet[3])|(uint16_t(packet[4])<<8))/256.f;
+  const uint8_t* bytes=packet+5;
   float values[6];
   for(int i=0;i<6;++i){
     const int16_t raw=static_cast<int16_t>(static_cast<uint16_t>(bytes[2*i])|
@@ -198,8 +292,8 @@ SampleResult readSample(Vec3& acceleration,Vec3& gyro,Vec3& rawAcceleration,UsbS
   acceleration=board::toBody(rawAcceleration,side);
   gyro=board::toBody({values[3],values[4],values[5]},side);
   // Saturated readings invalidate attitude instead of integrating clipped rates.
-  for(int i=0;i<3;++i)if(std::fabs(values[i])>3.95f)return SampleResult::Invalid;
-  for(int i=3;i<6;++i)if(std::fabs(values[i])>17.7f)return SampleResult::Invalid;
+  for(int i=0;i<3;++i)if(std::fabs(values[i])>3.95f){++imuHardware.saturated;return SampleResult::Invalid;}
+  for(int i=3;i<6;++i)if(std::fabs(values[i])>17.7f){++imuHardware.saturated;return SampleResult::Invalid;}
   return SampleResult::Valid;
 }
 
@@ -220,6 +314,9 @@ void samplingTask(void*) {
       side=command.side;
       state.calibrated=false;
       state.calibrationCount=0;
+      state.calibrationPeak=0;
+      state.calibrationRejects=0;
+      state.calibrationReason=instrument::StationaryCalibration::Rejection::None;
       calibration.reset();
       havePrevious=false;
     }
@@ -234,9 +331,24 @@ void samplingTask(void*) {
       havePrevious=false;
       state.sampledAt=0;
     }
+    if(imuSelfTestRequested.exchange(false)){
+      imuHardware.testing=true;++imuHardware.selfTestId;
+      state.sampleFault=true;state.hardware=imuHardware;xQueueOverwrite(snapshots,&state);
+      ImuTestBus bus;
+      imuHardware.accelSelf=instrument::imuSelfTest(bus,false);
+      imuHardware.gyroSelf=instrument::imuSelfTest(bus,true);
+      initialized=initializeImu();lastAttempt=millis();
+      imuHardware.restored=initialized&&imuHardware.accelSelf.restored&&imuHardware.gyroSelf.restored;
+      imuHardware.testing=false;state.present=initialized;state.sampleFault=true;state.calibrated=false;
+      state.calibrationCount=state.calibrationPeak=0;state.calibrationRejects=0;
+      state.calibrationReason=instrument::StationaryCalibration::Rejection::None;
+      calibration.reset();havePrevious=false;wake=xTaskGetTickCount();
+    }
+    pollHardware(millis());
     Vec3 acceleration,gyro,raw;
     const SampleResult result=initialized?readSample(acceleration,gyro,raw,side):SampleResult::NotReady;
     if(result==SampleResult::Invalid){
+      ++state.imuInvalidSamples;
       // Hide the pose immediately, but retain bias, trim and filter orientation.
       // The first recovered sample starts a new interval; missing motion is lost.
       state.sampleFault=true;
@@ -255,15 +367,24 @@ void samplingTask(void*) {
       ++state.samples;
       state.rawAcceleration=raw;
       state.gyroDps={gyro.x/board::RadPerDegree,gyro.y/board::RadPerDegree,gyro.z/board::RadPerDegree};
-      if(dt>0.1f&&!state.calibrated)calibration.reset();
+      if(dt>0.1f){
+        ++state.imuSampleGaps;
+        if(!state.calibrated)calibration.reset();
+      }
       if(!state.calibrated){
         if(calibration.add(acceleration,gyro)){
           bias=calibration.bias();
           filter.reset(calibration.acceleration());
           filter.zeroReference();
           state.calibrated=true;
+          state.calibrationReason=instrument::StationaryCalibration::Rejection::None;
         }
         state.calibrationCount=calibration.count();
+        if(state.calibrationCount>state.calibrationPeak)state.calibrationPeak=state.calibrationCount;
+        if(calibration.rejection()!=instrument::StationaryCalibration::Rejection::None){
+          ++state.calibrationRejects;
+          state.calibrationReason=calibration.rejection();
+        }
       }else if(dt>0&&dt<=0.1f){
         state.sampleFault=!filter.update(acceleration,{gyro.x-bias.x,gyro.y-bias.y,gyro.z-bias.z},dt);
         if(state.sampleFault)havePrevious=false;
@@ -277,15 +398,17 @@ void samplingTask(void*) {
     }else if(initialized){
       const uint32_t age=state.sampledAt?static_cast<uint32_t>(millis()-state.sampledAt):static_cast<uint32_t>(millis()-lastAttempt);
       if(age>100){
+        if(havePrevious)++state.imuSampleGaps;
         state.sampleFault=true;havePrevious=false;calibration.reset();
         if(!state.calibrated)state.calibrationCount=0;
       }
       if(age>500){initialized=false;state.present=false;}
     }
+    state.hardware=imuHardware;
     xQueueOverwrite(snapshots,&state);
     pollTouch(millis());
     pollPowerButton(millis());
-    if(bootButton.update(true,digitalRead(board::Boot)==LOW,millis()))menuClick.store(true);
+    if(bootButton.update(true,digitalRead(board::Boot)==LOW,millis())){bootClicks.fetch_add(1);menuClick.store(true);}
     vTaskDelayUntil(&wake,pdMS_TO_TICKS(5));
   }
 }
@@ -351,6 +474,15 @@ void controls() {
   // Bound command processing so a continuously streaming host cannot starve drawing.
   for(int count=0;count<64&&Serial.available();++count){
     const char key=static_cast<char>(Serial.read());
+    if(key=='J'){diagnosticLease.renew(now);continue;}
+    if(key=='K'){diagnosticLease.stop();continue;}
+    if(key=='S'){imuSelfTestRequested.store(true);continue;}
+    if(key=='M'){memoryDiagnostic.pending=true;continue;}
+    if(key=='N'){cardDiagnostic.pending=true;continue;}
+    if(key=='c'){
+      if(settingsMenu.page!=SettingsPage::Closed){settingsMenu.page=SettingsPage::Closed;updateMenu(settingsMenu.options.encode());}
+      applyControl(instrumentControls.shortPress());continue;
+    }
     if(key=='m')clickMenu();
     else if(settingsMenu.page==SettingsPage::Closed)applyControl(instrumentControls.input(key,now));
     else if(key>='1' && key<=(settingsMenu.page==SettingsPage::Main?'2':'4')){
@@ -360,12 +492,53 @@ void controls() {
   }
 }
 
+// Read-only snapshots; the USB/render thread never accesses I2C.
+void emitServiceDiagnostics(const Snapshot& state){
+  const uint32_t now=millis();const bool active=diagnosticLease.active(now);hardwareTelemetryActive.store(active);if(!active)return;
+  static uint32_t lastFast=0,lastSamples=0,lastHardware=0,txDrops=0;
+  static instrument::DiagnosticCadence cadence;
+  static unsigned part=0;
+  char line[480];int n=0;
+  if(cadence.due(now)){
+    const float hz=(state.samples-lastSamples)*1000.f/uint32_t(now-lastFast);
+    lastSamples=state.samples;lastFast=now;
+    n=snprintf(line,sizeof(line),"IMUFAST seq=%lu present=%d fault=%d valid=%d cal=%u/400 reason=%s accel_g=%.4f,%.4f,%.4f gyro_dps=%.3f,%.3f,%.3f g=%.3f hz=%.1f age_ms=%lu\n",
+      (unsigned long)state.samples,state.present,state.sampleFault,instrument::currentAttitude(state,now),state.calibrationCount,
+      instrument::calibrationReasonName(state.calibrationReason),state.rawAcceleration.x,state.rawAcceleration.y,state.rawAcceleration.z,
+      state.gyroDps.x,state.gyroDps.y,state.gyroDps.z,std::sqrt(state.rawAcceleration.x*state.rawAcceleration.x+state.rawAcceleration.y*state.rawAcceleration.y+state.rawAcceleration.z*state.rawAcceleration.z),hz,
+      (unsigned long)(state.samples?uint32_t(now-state.sampledAt):0));
+    if(n<=0||n>=int(sizeof(line))||!instrument::tryDiagnostic(Serial,line,n))++txDrops;
+  }
+  if(!part&&uint32_t(now-lastHardware)>=1000){part=1;lastHardware=now;}
+  const auto& h=state.hardware;
+  switch(part){
+    case 1:n=snprintf(line,sizeof(line),"IMUHW who=%d alt_who=%d rev=%d ctrl2=%d ctrl3=%d ctrl7=%d temp_c=%.2f nack=%lu short=%lu sat=%lu notready=%lu repeats=%lu timestamp=%lu restore=%d\n",
+      h.who,h.altWho,h.revision,h.ctrl2,h.ctrl3,h.ctrl7,h.temperature,(unsigned long)h.nack,(unsigned long)h.shortRead,(unsigned long)h.saturated,(unsigned long)h.notReady,(unsigned long)h.repeatedTimestamp,(unsigned long)h.timestamp,h.restored);break;
+    case 2:n=snprintf(line,sizeof(line),"BOARD pmu=%d adc=%d touch=%d expander=%d panel=%d battery=%d vbus_good=%d vbus_mv=%u sys_mv=%u batt_mv=%u heap=%u heap_min=%u heap_largest=%u psram=%u psram_free=%u flash=%u reset=%d nvs=%d tx_drop=%lu\n",
+      h.pmu,h.adc,h.touch,h.expander,panelReady.load(),h.battery,h.vbusGood,h.vbusMv,h.systemMv,h.batteryMv,
+      ESP.getFreeHeap(),ESP.getMinFreeHeap(),ESP.getMaxAllocHeap(),ESP.getPsramSize(),ESP.getFreePsram(),ESP.getFlashChipSize(),int(esp_reset_reason()),preferencesReady,(unsigned long)txDrops);break;
+    case 3:{const uint32_t p=touchPosition.load();n=snprintf(line,sizeof(line),"INPUT touch_packets=%lu touch_errors=%lu x=%u y=%u contacts=%u swipes=%lu boot_clicks=%lu pwr_clicks=%lu boot_down=%d pwr_down=%d button_ready=%d\n",
+      (unsigned long)touchPackets.load(),(unsigned long)touchErrors.load(),unsigned((p>>9)&511),unsigned(p&511),unsigned(p>>18),(unsigned long)swipeCount.load(),(unsigned long)h.bootClicks,(unsigned long)calibrationClicks.load(),h.bootDown,h.pwrDown,h.button);break;}
+    case 4:{const auto stats=displayPipeline.stats();n=snprintf(line,sizeof(line),"DISPLAY fps=%.1f panel=%d te_us=%lu te_pulses=%lu te_miss=%lu\n",stats.fps,panelReady.load(),(unsigned long)stats.tePeriodUs,(unsigned long)stats.tePulses,(unsigned long)stats.teMisses);break;}
+    case 5:n=snprintf(line,sizeof(line),"MEMORY id=%lu ram=%d ram_bytes=%lu psram=%d psram_bytes=%lu flash=%d pending=%d\n",
+      (unsigned long)memoryDiagnostic.id,memoryDiagnostic.ram,(unsigned long)memoryDiagnostic.ramBytes,memoryDiagnostic.psram,(unsigned long)memoryDiagnostic.psramBytes,memoryDiagnostic.flash,memoryDiagnostic.pending);break;
+    case 6:n=snprintf(line,sizeof(line),"SELFTEST id=%lu running=%d accel=%d gyro=%d restore=%d accel_mg=%.2f,%.2f,%.2f gyro_dps=%.2f,%.2f,%.2f\n",
+      (unsigned long)h.selfTestId,h.testing,h.accelSelf.code,h.gyroSelf.code,h.restored,h.accelSelf.response.x,h.accelSelf.response.y,h.accelSelf.response.z,h.gyroSelf.response.x,h.gyroSelf.response.y,h.gyroSelf.response.z);break;
+    case 7:n=snprintf(line,sizeof(line),"PERIPHERAL rtc=%d rtc_sec=%d rtc_os=%d rtc_stop=%d rtc_tick=%d dac=%d mic=%d\n",h.rtc,h.rtcSec,h.rtcOs,h.rtcStop,h.rtcTick,h.dac,h.microphone);break;
+    case 8:n=snprintf(line,sizeof(line),"SDCHECK id=%lu pending=%d result=%d bytes=%llu\n",(unsigned long)cardDiagnostic.id,cardDiagnostic.pending,cardDiagnostic.result,(unsigned long long)cardDiagnostic.bytes);break;
+    default:return;
+  }
+  if(n<=0||n>=int(sizeof(line))){++txDrops;part=0;return;}
+  if(instrument::tryDiagnostic(Serial,line,n)){if(++part>8)part=0;}
+}
+
 void setup() {
   // HWCDC defaults to 256 bytes; complete per-frame diagnostics can exceed that.
   // Allocate once at startup while retaining zero-wait writes during rendering.
   Serial.setTxBufferSize(1024);
   Serial.begin(115200);
   instrument::configureDiagnostics(Serial);
+  Serial.printf("Firmware: %s\n",instrument::FirmwareVersion);
   Serial.printf("CPU MHz: %u; band rows: %u; DMA chunk pixels: %u\n",getCpuFrequencyMhz(),instrument::DisplayBandRows,static_cast<unsigned>(fastPanel.chunkPixels()));
   pinMode(board::Boot,INPUT_PULLUP);
   preferencesReady=preferences.begin("instrument-ui");
@@ -378,7 +551,7 @@ void setup() {
   // Preserve the factory rail voltages and charging configuration.
   const bool pmuPresent=pmu.init(Wire,board::Sda,board::Scl);
   Serial.printf("AXP2101: %s\n",pmuPresent?"present":"not found");
-  if(pmuPresent)pmu.disableLongPressShutdown();
+  if(pmuPresent){pmu.disableLongPressShutdown();pmu.enableSystemVoltageMeasure();pmu.enableVbusVoltageMeasure();pmu.enableBattVoltageMeasure();}
   initializePowerButton();
   if(xTaskCreatePinnedToCore(initializePanel,"panel_init",6144,
       xTaskGetCurrentTaskHandle(),1,nullptr,0)!=pdPASS){
@@ -406,6 +579,7 @@ void setup() {
     stopWithMessage("IMU TASK FAILED");
   if(!displayPipeline.begin(display,fastPanel,renderer,airspeedRenderer,altimeterRenderer,hudRenderer,frames,snapshots))stopWithMessage("DISPLAY TASK FAILED");
   Serial.println("ATTITUDE (IMU). PWR: shared calibration; BOOT or m: settings; swipe: switch. d: demo; a: airspeed; h: attitude; c: calibrate; v135 + newline: simulated km/h; t: altimeter; u: HUD; b275 + newline: simulated meters (0-3000).");
+  Serial.println("Calibration diagnostics: caldiag3; J=20Hz diagnostics, K=stop, S=IMU self-test, M=memory/image check, N=read-only SD check. IMUDIAG at 1 Hz.");
 }
 
 void loop() {
@@ -418,6 +592,9 @@ void loop() {
     Serial.printf("CALIBRATION complete id=%lu; shared pitch=%.2f roll=%.2f\n",(unsigned long)state.calibrationId,state.pitch,state.roll);
   }
   static uint32_t sequence=0,lastMenuGeneration=0;
+  emitServiceDiagnostics(state);
+  if(memoryDiagnostic.pending)runMemoryDiagnostic();
+  if(cardDiagnostic.pending)runCardDiagnostic();
   const uint32_t generation=displayPipeline.generation();
   if(settingsMenu.page!=SettingsPage::Closed){
     if(generation!=lastMenuGeneration){
@@ -506,6 +683,11 @@ void loop() {
   if(static_cast<uint32_t>(millis()-lastLog)>=1000){
     const float sampleHz=(state.samples-lastSamples)*1000.f/(millis()-lastLog);
     lastSamples=state.samples;lastLog=millis();
+    {
+      char imuMessage[320];
+      const int imuLength=instrument::formatImuDiagnostic(imuMessage,sizeof(imuMessage),state,lastLog,sampleHz);
+      if(imuLength>0)instrument::tryDiagnostic(Serial,imuMessage,imuLength);
+    }
     char message[720];
     const uint32_t tp=touchPosition.load(std::memory_order_relaxed);
     const int length=snprintf(message,sizeof(message),"fps=%.1f pitch=%.1f roll=%.1f valid=%d cal=%u demo=%d raw_g=%.3f,%.3f,%.3f render_ms=%.1f tx_ms=%.1f frame_ms=%.1f max_gap_ms=%.1f sample_hz=%.1f heap=%u drops=%lu setup_ms=%.1f stack=%u,%u,%u stages=%lu,%lu,%lu,%lu mode=%s speed=%.1f altitude_m=%.1f te_us=%lu te_miss=%lu te_pulses=%lu patch=%lu touch=%lu touch_err=%lu touch_xy=%u,%u touch_n=%u swipes=%lu scan_us=%ld,%ld cal_id=%lu cal_ui=%d pwr_clicks=%lu usb=%s round_cross=%lu hud_cross=%lu\n",

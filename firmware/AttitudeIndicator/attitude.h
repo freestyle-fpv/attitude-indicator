@@ -16,13 +16,17 @@ private:
 };
 class StationaryCalibration {
 public:
+  enum class Rejection : uint8_t { None, Nonfinite, GravityRange, GyroRate,
+                                  AccelerationMotion, GyroVariation };
   void reset();
   bool add(Vec3 acceleration, Vec3 gyroRadPerSec);
+  Rejection rejection() const { return rejection_; }
   unsigned count() const { return count_; }
   Vec3 bias() const { return gyroMean_; }
   Vec3 acceleration() const { return accelMean_; }
   static constexpr unsigned RequiredSamples = 400;
 private:
+  Rejection rejection_ = Rejection::None;
   unsigned count_ = 0;
   unsigned pending_ = 0;
   Vec3 gyroMean_{0,0,0}, accelMean_{0,0,0}, first_{0,0,0};
