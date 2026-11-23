@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
 from unittest.mock import patch
 
 spec=importlib.util.spec_from_file_location('package_installer',Path(__file__).resolve().parents[1]/'tools/package_installer.py')
@@ -57,6 +58,21 @@ class ServicePages(unittest.TestCase):
                     package.service_page('diagnostics.html')
 
 class ChineseInstaller(unittest.TestCase):
+    def test_direct_install_and_completion_close_follow_real_dialog_handlers(self):
+        root=Path(__file__).resolve().parents[1]
+        source=(root/'tests/fixtures/web-tools-install-dialog.js').read_text()
+        translated=package.localize_dialog(package.simplify_dialog(source))
+        with tempfile.TemporaryDirectory() as folder:
+            script=Path(folder)/'dialog.js';script.write_text(translated)
+            subprocess.run(['node',str(root/'tests/installer_dialog_test.js'),str(script)],check=True)
+
+    def test_navigation_transform_rejects_unrecognized_upstream_flow(self):
+        root=Path(__file__).resolve().parents[1]
+        source=(root/'tests/fixtures/web-tools-install-dialog.js').read_text()
+        for changed in (source.replace('this.logger=console,this._state="DASHBOARD"','this.logger=console,this._state="UNKNOWN"'),
+                        source.replace('label="Installation complete!"','label="Changed upstream"')):
+            with self.assertRaises(ValueError):package.simplify_dialog(changed)
+
     def test_erase_confirmation_and_install_actions_are_translated_in_bundled_source(self):
         source='const titles=["Erase device","Confirm Installation","Preparing installation"];const view=html`<p>Do you want to erase the device before installing ${name}? All data on the device will be lost.</p><ewt-page-message label="Installation complete!"></ewt-page-message><button>Back</button><button>Next</button><button>Install</button>`;const wire={eraseAll:!1,compress:!0};'
         translated=package.localize_dialog(source)

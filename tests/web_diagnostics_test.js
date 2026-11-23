@@ -250,3 +250,37 @@ test('export file retains real capture and uses a readable safe Chinese filename
  assert.match(file.content,/IMUDIAG/);assert.equal(file.rows,1);
  m.source='example';assert.match(reportFile(m,2000,{}).filename,/示例/);
 });
+test('stationary summary uses device-reported jitter tolerance and preserves legacy fallback',()=>{
+ const {stationarySummary}=require('../installer/diagnostics-core.js');
+ for(const [limit,amplitude,want] of [[null,1.1,'warning'],[3,1.1,'success'],[3,3.5,'warning'],[5,4,'success'],[5,5.5,'warning'],[-1,1.1,'warning']]){
+  const m=new DiagnosticModel();
+  if(limit!==null)m.add(`IMUHW who=5 cal_var_dps=${limit} cal_mean_g=0.05`,1000);
+  for(let i=0;i<40;i++)m.add(`IMUFAST seq=${i} valid=0 gyro_dps=0,${i%2?amplitude:-amplitude},0 g=1 cal=0/400`,1000+i*50);
+  assert.equal(stationarySummary(m,1000,4000).tone,want,`${limit}/${amplitude}`);
+ }
+});
+test('calibration rejection explains the actual device limits in Chinese',()=>{
+ const m=new DiagnosticModel();
+ m.add('IMUHW who=5 cal_max_dps=10 cal_var_dps=5 cal_step_g=0.075 cal_mean_g=0.05',1000);
+ for(const [reason,terms] of [['gyro_rate',['10.00']],['gyro_variation',['5.00','累计均值']],['accel_motion',['0.075','0.050']]]){
+  m.add(blocked.replace('reason=gyro_rate',`reason=${reason}`),1100);
+  const state=classify(m,1101,'connected');
+  for(const term of terms)assert.ok(state.description.includes(term),`${reason}: ${state.description}`);
+ }
+});
+test('saved calibration diagnostics distinguish restored, pending, saved and failed persistence',()=>{
+ const {hardwareChecks}=require('../installer/diagnostics-core.js');
+ for(const [value,tone,word] of [[0,'neutral','尚无'],[1,'success','恢复'],[2,'neutral','等待'],[3,'success','回读'],[-1,'warning','失败']]){
+  const m=new DiagnosticModel();
+  m.add(`IMUHW who=5 cal_store=${value}`,1000);
+  m.add('IMUDIAG present=1 fault=0 valid=1 cal=400/400 gyro_dps=0,0,0 g=1',1000);
+  const row=hardwareChecks(m,1001,'connected').find(r=>r.id==='calibration_store');
+  assert.ok(row);assert.equal(row.tone,tone);assert.ok(row.description.includes(word),row.description);
+  const state=classify(m,1001,'connected');
+  if(value===-1){assert.equal(state.tone,'warning');assert.match(state.description,/未保存/);}
+  if(value===1)assert.match(state.description,/恢复/);
+  if(value===3)assert.match(state.description,/已保存/);
+ }
+ const legacy=new DiagnosticModel();legacy.add('IMUHW who=5',1000);
+ assert.equal(hardwareChecks(legacy,1001,'connected').find(r=>r.id==='calibration_store').tone,'neutral');
+});

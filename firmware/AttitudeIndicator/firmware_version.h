@@ -2,5 +2,5 @@
 
 namespace instrument {
 // Release version; caldiag3 in IMUDIAG is the diagnostic protocol version.
-constexpr char FirmwareVersion[] = "v0.2.1";
+constexpr char FirmwareVersion[] = "v0.2.2";
 }

@@ -1,9 +1,44 @@
 """Chinese display text for the SHA-512 pinned ESP Web Tools 10.5.2 bundle.
 
-Only UI strings change. The ESP ROM protocol, flashing algorithm and binary
-verification remain upstream code. Fail closed if required upstream text drifts.
+UI strings and dialog navigation are customized. The ESP ROM protocol, flashing
+algorithm and binary verification remain upstream code. Fail closed on drift.
 """
 import re
+
+
+def simplify_dialog(source):
+    """Skip the dashboard and close completion, preserving explicit confirmation."""
+    def once(text, old, new):
+        if text.count(old) != 1:
+            raise ValueError('ESP Web Tools navigation source drift: ' + old)
+        return text.replace(old, new, 1)
+
+    source = once(source, 'this.logger=console,this._state="DASHBOARD"',
+                  'this.logger=console,this._state="ASK_ERASE"')
+    start = source.index('_renderAskErase(){')
+    end = source.index('_renderInstall(){', start)
+    ask = once(source[start:end], '@click=${()=>{this._state="DASHBOARD"}}',
+               '@click=${this._closeDialog}')
+    source = source[:start] + ask + source[end:]
+    start = source.index('_renderInstall(){')
+    end = source.index('_renderLogs(){', start)
+    install = source[start:end]
+    complete_start = install.index('label="Installation complete!"')
+    complete_end = install.index('</div>', complete_start)
+    complete = install[complete_start:complete_end]
+    complete, count = re.subn(r'@click=\$\{\(\)=>\{this\._state=[\w$]+&&this\._installErase\?"PROVISION":"DASHBOARD"\}\}',
+                             '@click=${this._closeDialog}', complete)
+    if count != 1:
+        raise ValueError('ESP Web Tools completion action source drift')
+    complete, count = re.subn(r'(>\s*)Next(\s*<)', r'\1Close\2', complete)
+    if count != 1:
+        raise ValueError('ESP Web Tools completion label source drift')
+    install = install[:complete_start] + complete + install[complete_end:]
+    install = once(install, '@click=${()=>{this._state="DASHBOARD"}}',
+                   '@click=${()=>{this._state="ASK_ERASE"}}')
+    install = once(install, 'this._initialize(),this._state="DASHBOARD"',
+                   'this._initialize(),this._state="ASK_ERASE"')
+    return source[:start] + install + source[end:]
 
 
 def localize_dialog(source):
@@ -21,7 +56,7 @@ def localize_dialog(source):
         '"Confirm Installation"': '"确认安装"',
         'label="Installation complete!"': 'label="安装完成！"',
         'Do you want to erase the device before installing': '安装',
-        '? All data on the device will be lost.': '前，是否清除设备上的全部数据？重装时不勾选，可保留安装方向和 FPS 设置。',
+        '? All data on the device will be lost.': '前，是否清除设备上的全部数据？重装时不勾选，可保留安装方向、FPS 设置和已保存的校准。',
         'All data on the device will be erased.': '设备上的全部数据都将被清除。',
         'Keep this page visible for fastest installation.': '请保持页面在前台，并保持 USB 连接。',
         'Do you want to ${': '是否${',

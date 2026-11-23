@@ -89,7 +89,7 @@
      $('hardwareResults').replaceChildren(...checks.map(check=>{
        const card=document.createElement('article');card.className='hardware-check';card.dataset.tone=check.tone;
        const head=document.createElement('header'),title=document.createElement('h3'),badge=document.createElement('span'),description=document.createElement('p');
-       title.textContent=check.title;badge.className='badge';badge.textContent=check.badge||(check.tone==='success'?({identity:'配置正常',bus:'计数正常',temperature:'读数有效',selftest:'自检通过',power:'读数有效',input:'接口可用',display:'接口可用',memory:'抽检通过',system:'状态已读',rtc:'已观察到走时',audio:'接口可读',sd:'只读识别通过'})[check.id]:labels[check.tone]);description.textContent=check.description;
+       title.textContent=check.title;badge.className='badge';badge.textContent=check.badge||(check.tone==='success'?({identity:'配置正常',bus:'计数正常',temperature:'读数有效',calibration_store:'记录有效',selftest:'自检通过',power:'读数有效',input:'接口可用',display:'接口可用',memory:'抽检通过',system:'状态已读',rtc:'已观察到走时',audio:'接口可读',sd:'只读识别通过'})[check.id]:labels[check.tone]);description.textContent=check.description;
        head.append(title,badge);card.append(head,description);return card;
      }));
      $('hardwareSummary').textContent=`${checks.filter(c=>c.tone==='success').length} 项正常 · ${checks.filter(c=>c.tone==='warning'||c.tone==='danger').length} 项提示 · ${checks.filter(c=>c.tone==='neutral').length} 项未判定`;

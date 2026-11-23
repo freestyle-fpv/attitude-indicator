@@ -6,6 +6,14 @@ constexpr float Degrees = 57.295779513f;
 bool finite(Vec3 v) { return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z); }
 float norm(Vec3 v) { return std::sqrt(v.x*v.x+v.y*v.y+v.z*v.z); }
 float clampUnit(float x) { return x < -1 ? -1 : (x > 1 ? 1 : x); }
+bool gravityQuaternion(Vec3 a,float* q){
+  const float n=norm(a);
+  if(!finite(a)||!std::isfinite(n)||n<.1f)return false;
+  const float p=std::asin(clampUnit(a.x/n)),r=std::atan2(-a.y,-a.z);
+  const float cp=std::cos(p/2),sp=std::sin(p/2),cr=std::cos(r/2),sr=std::sin(r/2);
+  q[0]=cr*cp;q[1]=sr*cp;q[2]=cr*sp;q[3]=-sr*sp;
+  return true;
+}
 void multiply(const float* a,const float* b,float* o) {
   o[0]=a[0]*b[0]-a[1]*b[1]-a[2]*b[2]-a[3]*b[3];
   o[1]=a[0]*b[1]+a[1]*b[0]+a[2]*b[3]-a[3]*b[2];
@@ -16,13 +24,14 @@ void multiply(const float* a,const float* b,float* o) {
 // Body coordinates: X forward, Y right, Z down (right handed).
 // An accelerometer measures specific force: at level rest, a = (0,0,-1) g.
 void AttitudeFilter::reset(Vec3 a) {
-  float n=norm(a);
-  if(!finite(a)||!std::isfinite(n)||n<0.1f) return;
-  float p=std::asin(clampUnit(a.x/n));
-  float r=std::atan2(-a.y,-a.z);
-  float cp=std::cos(p/2),sp=std::sin(p/2),cr=std::cos(r/2),sr=std::sin(r/2);
-  q_[0]=cr*cp; q_[1]=sr*cp; q_[2]=cr*sp; q_[3]=-sr*sp;
+  if(!gravityQuaternion(a,q_))return;
   ref_[0]=1; ref_[1]=ref_[2]=ref_[3]=0;
+}
+bool AttitudeFilter::restoreReference(Vec3 zero,Vec3 current){
+  float reference[4],orientation[4];
+  if(!gravityQuaternion(zero,reference)||!gravityQuaternion(current,orientation))return false;
+  for(int i=0;i<4;++i){ref_[i]=reference[i];q_[i]=orientation[i];}
+  return true;
 }
 bool AttitudeFilter::update(Vec3 a,Vec3 w,float dt) {
   if(!finite(a)||!finite(w)||!std::isfinite(dt)||dt<=0||dt>0.1f) return false;
@@ -76,8 +85,8 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   // Before calibration, constant gyro bias is not evidence of motion. This
   // board measured ~1.5 deg/s at rest. Bound the plausible raw bias separately
   // from variation around its running mean (all rates below are radians/s).
-  constexpr float MaxRawRate=0.17453293f; // 10 deg/s
-  constexpr float MaxRateChange=0.01308997f; // 0.75 deg/s
+  constexpr float MaxRawRate=MaxRawRateDps/Degrees;
+  constexpr float MaxRateChange=MaxRateChangeDps/Degrees;
   // Use the same gravity gate as fusion. This board reads about 0.91 g when
   // supported on some edges; the separate variation checks still reject motion.
   if(!finite(a)||!finite(w))return reject(Rejection::Nonfinite);
@@ -86,10 +95,10 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   if(count_>=RequiredSamples)return true;
   if(count_>0){
     const Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
-    if(norm(delta)>.075f)return reject(Rejection::AccelerationMotion);
+    if(norm(delta)>MaxInstantAccelerationChangeG)return reject(Rejection::AccelerationMotion);
   }
   // At 200 Hz a block spans 20 ms. Compare its mean with the stationary
-  // reference so isolated sensor jitter cannot restart a two-second wait.
+  // reference. Allow bounded vibration while preserving the full averaging window.
   // Instantaneous saturation, gravity and large motion checks still apply.
   constexpr unsigned Block=4;
   static_assert(RequiredSamples%Block==0,"calibration must use full blocks");
@@ -105,7 +114,7 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   }
   if(count_==0)first_=a;
   Vec3 delta{a.x-first_.x,a.y-first_.y,a.z-first_.z};
-  if(norm(delta)>0.025f)return reject(Rejection::AccelerationMotion);
+  if(norm(delta)>MaxMeanAccelerationChangeG)return reject(Rejection::AccelerationMotion);
   count_+=Block;
   const float weight=float(Block)/count_;
   gyroMean_.x+=(w.x-gyroMean_.x)*weight;

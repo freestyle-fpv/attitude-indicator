@@ -9,6 +9,8 @@ python3 tests/installer_packaging_test.py
 TASK_CXX=${CXX:-clang++}
 "$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/attitude_test.cpp firmware/AttitudeIndicator/attitude.cpp -o build/attitude_test
 build/attitude_test
+"$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/calibration_store_test.cpp firmware/AttitudeIndicator/attitude.cpp -o build/calibration_store_test
+build/calibration_store_test
 "$TASK_CXX" -std=c++11 -Wall -Wextra -Werror -fsanitize=address,undefined -Ifirmware/AttitudeIndicator tests/hardware_diagnostics_test.cpp -o build/hardware_diagnostics_test
 build/hardware_diagnostics_test
 sh tools/imu_recovery_test.sh

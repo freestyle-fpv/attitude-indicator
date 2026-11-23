@@ -1,5 +1,7 @@
+#include "calibration_jitter_fixture.h"
 #include "board_config.h"
 #include "calibration_controls.h"
+#include "calibration_store.h"
 #include "display_policy.h"
 #include "runtime_state.h"
 #include <atomic>
@@ -12,7 +14,7 @@ using instrument::UsbSide;
 using board::SampleResult;
 using TickType_t=uint32_t;
 constexpr int pdTRUE=1,LOW=0;
-constexpr unsigned commands=1,snapshots=2;
+constexpr unsigned commands=1,snapshots=2,calibrationSaves=3;
 constexpr TickType_t pdMS_TO_TICKS(unsigned ms){return ms;}
 struct CalibrationRequest {uint32_t id;UsbSide side;};
 struct Step {
@@ -26,6 +28,9 @@ struct Step {
 };
 static std::vector<Step> steps;
 static std::vector<Snapshot> observed;
+static std::vector<instrument::CalibrationRecord> savedRecords;
+static instrument::CalibrationRecord initialCalibration;
+static std::atomic<uint32_t> calibrationStoreStatus{0};
 static size_t cursor=0;
 static int failures=0;
 static UsbSide initialSide=UsbSide::Left;
@@ -57,6 +62,7 @@ int xQueueReceive(unsigned queue,CalibrationRequest* command,unsigned){
   *command={steps[cursor].calibrationId,steps[cursor].side};return pdTRUE;
 }
 void xQueueOverwrite(unsigned,const Snapshot* state){observed.push_back(*state);}
+void xQueueOverwrite(unsigned queue,const instrument::CalibrationSaveRequest* save){if(queue==calibrationSaves)savedRecords.push_back(save->record);}
 void vTaskDelayUntil(TickType_t*,TickType_t){if(++cursor==steps.size())throw Finished{};}
 
 // Generated from the actual sketch by imu_recovery_test.sh. Only hardware I/O
@@ -67,8 +73,9 @@ static void check(bool ok,const char* name){
   std::printf("%s %s\n",ok?"PASS":"FAIL",name);if(!ok)++failures;
 }
 static bool near(float a,float b,float tolerance=.3f){return std::fabs(a-b)<tolerance;}
-static void run(){
+static void run(const instrument::CalibrationRecord& startup=instrument::CalibrationRecord{}){
   cursor=0;observed.clear();imuHardware=instrument::HardwareState();imuSelfTestRequested.store(false);bootClicks.store(0);
+  initialCalibration=startup;savedRecords.clear();calibrationStoreStatus.store(0);
   try{samplingTask(nullptr);}catch(const Finished&){}
 }
 static void calibrated(uint32_t start=1000){
@@ -202,5 +209,52 @@ int main(){
   run();
   check(observed.back().calibrated&&near(observed.back().roll,0),
     "sampler restores normal operation and requires a fresh stationary zero after self-test");
+  steps.clear();
+  for(unsigned i=0;i<400;++i){const auto sample=calibration_fixture::mild(i);steps.emplace_back(1000+i*5,SampleResult::Valid,sample.acceleration,sample.gyro);}
+  run();
+  check(observed.back().calibrated&&observed.back().calibrationCount==400,
+    "real sampling task completes a two-second mild-vibration calibration window");
+  for(unsigned i=0;i<1000;++i)steps.emplace_back(3000+i*5,SampleResult::Valid,Vec3{0,0,0},calibration_fixture::bias());
+  run();
+  check(observed.back().calibrated&&near(observed.back().pitch,0,.01f)&&near(observed.back().roll,0,.01f),
+    "mild-vibration calibration removes the real gyro bias without gravity-assisted drift hiding");
+  check(savedRecords.size()==1&&instrument::validCalibrationRecord(savedRecords.front(),UsbSide::Left),
+    "a complete fresh window queues exactly one durable calibration record");
+  const auto saved=instrument::makeCalibrationRecord(UsbSide::Left,{.02f,0,0},{0,-.342020143f,-.939692621f});
+  steps.clear();steps.emplace_back(1000,SampleResult::Valid,Vec3{0,-.766044443f,-.642787610f},Vec3{.02f,0,0});
+  for(unsigned i=1;i<1000;++i)steps.emplace_back(1000+i*5,SampleResult::Valid,Vec3{0,0,0},Vec3{.02f,0,0});
+  run(saved);
+  check(observed.front().calibrated&&observed.front().calibrationCount==400&&!instrument::currentAttitude(observed.front(),1000),
+    "saved calibration restores immediately but first sample cannot authorize a stale integration interval");
+  check(instrument::currentAttitude(observed[1],1005)&&near(observed.back().roll,30,.02f)&&savedRecords.empty()&&calibrationStoreStatus.load()==1,
+    "reboot skips the stationary window, preserves current tilt and compensates saved bias without rewriting storage");
+  for(unsigned i=0;i<4;++i){
+    initialSide=UsbSide(i);const auto perSide=instrument::makeCalibrationRecord(initialSide,{.02f,0,0},{0,-.342020143f,-.939692621f});
+    steps.clear();for(unsigned j=0;j<3;++j)steps.emplace_back(1000+j*5,SampleResult::Valid,Vec3{0,-.766044443f,-.642787610f},Vec3{.02f,0,0});
+    run(perSide);check(observed.back().calibrated&&near(observed.back().roll,30,.02f)&&savedRecords.empty(),
+      "saved startup calibration works for each of four installation directions");
+  }
+  initialSide=UsbSide::Left;
+  steps.clear();for(unsigned i=0;i<400;++i)steps.emplace_back(1000+i*5,SampleResult::Valid);
+  auto corrupt=saved;corrupt.checksum^=1;run(corrupt);
+  check(!observed[398].calibrated&&observed[399].calibrated&&savedRecords.size()==1,
+    "corrupt saved data falls back to a complete new calibration window");
+  run(instrument::makeCalibrationRecord(UsbSide::Top,{0,0,0},{0,0,-1}));
+  check(!observed[398].calibrated&&observed[399].calibrated,
+    "a different installation direction cannot restore its zero at boot");
+  steps.clear();for(unsigned i=0;i<3;++i)steps.emplace_back(1000+i*5,SampleResult::Valid);
+  steps[2].calibrationId=7;
+  for(unsigned i=0;i<399;++i)steps.emplace_back(1015+i*5,SampleResult::Valid);
+  run(saved);
+  check(observed[1].calibrated&&!observed[2].calibrated&&observed.back().calibrated&&savedRecords.size()==1&&near(savedRecords.front().bias.x,0,.00001f),
+    "manual calibration replaces saved bias only after collecting a new complete window");
+  steps.clear();for(unsigned i=0;i<5;++i)steps.emplace_back(1000+i*5,SampleResult::Valid);
+  steps[1].selfTest=true;run(saved);
+  check(observed.front().calibrated&&!observed.back().calibrated&&savedRecords.empty(),
+    "IMU self-test cannot silently restore the startup record instead of recalibrating");
+  steps.clear();steps.emplace_back(1000,SampleResult::NotReady);steps.back().initOk=false;
+  steps.emplace_back(2000,SampleResult::Valid);steps.emplace_back(2005,SampleResult::Valid);run(saved);
+  check(!instrument::currentAttitude(observed.front(),1000)&&instrument::currentAttitude(observed.back(),2005),
+    "saved calibration cannot authorize missing hardware and resumes only after fresh sensor readings");
   std::printf("%d failures\n",failures);return failures?1:0;
 }

@@ -8,11 +8,20 @@
   const triple=value=>{if(!value)return null;const a=value.split(',').map(numeric);return a.length===3&&a.every(x=>x!==null)?a:null;};
   const reasons={
     gyro_rate:['陀螺仪速率超限','最近一次校准样本超过了固件的速率限制（v0.2.1 起为 10°/s，旧版为 5°/s）。请固定静止观察；持续出现时导出日志，进一步判断零偏或异常读数。'],
-    gyro_variation:['陀螺仪读数变化较大','相邻采样块的陀螺仪变化超过稳定性条件。先排除晃动、桌面振动与 USB 线牵拉，再保留日志排查。'],
+    gyro_variation:['陀螺仪读数变化较大','4 样本平均陀螺仪与累计均值的差超过稳定性条件。先排除晃动、桌面振动与 USB 线牵拉，再保留日志排查。'],
     accel_motion:['重力方向发生变化','校准检测到加速度向量变化。固定板子并等待一个完整的稳定窗口。'],
     gravity_range:['加速度超出校准范围','加速度模长不在 0.85–1.15g 内。固定静止后若持续超限，请导出日志进一步排查。'],
     nonfinite:['收到非有限传感器数据','加速度或陀螺仪中存在 NaN / Infinity。需要检查传感器读取情况。']
   };
+  const positiveLimit=(imu,key,fallback)=>imu?.[key]>0?imu[key]:fallback;
+  function rejectionDescription(reason,imu){
+    const raw=positiveLimit(imu,'cal_max_dps',null),variation=positiveLimit(imu,'cal_var_dps',null);
+    const instant=positiveLimit(imu,'cal_step_g',null),mean=positiveLimit(imu,'cal_mean_g',null);
+    if(reason==='gyro_rate'&&raw!==null)return `三轴原始陀螺仪合成速率超过设备上限 ${raw.toFixed(2)}°/s。请固定静止观察；持续出现时导出日志，进一步判断零偏或异常读数。`;
+    if(reason==='gyro_variation'&&variation!==null)return `4 样本平均陀螺仪与累计均值的合成差超过 ${variation.toFixed(2)}°/s。轻微抖动允许范围仍有限，先排除明显晃动、桌面振动与 USB 线牵拉。`;
+    if(reason==='accel_motion'&&instant!==null&&mean!==null)return `相对首个采样块，单样本加速度向量变化超过 ${instant.toFixed(3)}g，或 4 样本均值变化超过 ${mean.toFixed(3)}g。固定板子并等待一个完整的稳定窗口。`;
+    return reasons[reason][1];
+  }
   class LineDecoder{
     constructor(onLine,maxLength=8192){this.onLine=onLine;this.maxLength=maxLength;this.decoder=new TextDecoder();this.buffer='';this.overflow=false;this.dropped=0;}
     push(bytes){
@@ -53,7 +62,7 @@
       const values=Object.create(null);
       for(const match of line.matchAll(/(?:^|\s)([a-zA-Z_][\w]*)=([^\s]+)/g))values[match[1]]=match[2];
       if(kind){
-        const allowed={imu:'who alt_who rev ctrl2 ctrl3 ctrl7 temp_c nack short sat notready repeats timestamp restore',board:'pmu adc touch expander panel battery vbus_good vbus_mv sys_mv batt_mv heap heap_min heap_largest psram psram_free flash reset nvs tx_drop',input:'touch_packets touch_errors x y contacts swipes boot_clicks pwr_clicks boot_down pwr_down button_ready',display:'fps panel te_us te_pulses te_miss',memory:'id ram ram_bytes psram psram_bytes flash pending',selftest:'id running accel gyro restore accel_mg gyro_dps',peripheral:'rtc rtc_sec rtc_os rtc_stop rtc_tick dac mic',sd:'id pending result bytes'}[kind].split(' ');
+        const allowed={imu:'who alt_who rev ctrl2 ctrl3 ctrl7 temp_c nack short sat notready repeats timestamp restore cal_max_dps cal_var_dps cal_step_g cal_mean_g cal_store',board:'pmu adc touch expander panel battery vbus_good vbus_mv sys_mv batt_mv heap heap_min heap_largest psram psram_free flash reset nvs tx_drop',input:'touch_packets touch_errors x y contacts swipes boot_clicks pwr_clicks boot_down pwr_down button_ready',display:'fps panel te_us te_pulses te_miss',memory:'id ram ram_bytes psram psram_bytes flash pending',selftest:'id running accel gyro restore accel_mg gyro_dps',peripheral:'rtc rtc_sec rtc_os rtc_stop rtc_tick dac mic',sd:'id pending result bytes'}[kind].split(' ');
         const record=Object.create(null);let fields=0;
         for(const key of allowed){const value=key==='accel_mg'||key==='gyro_dps'?triple(values[key]):numeric(values[key]);if(value!==null){record[key]=value;fields++;}}
         if(!fields)return false;
@@ -108,11 +117,16 @@
     if(model.hardware.selftest?.running===1&&now-(model.hardwareAt.selftest||0)<3500)return status('self_testing','neutral','IMU 内置自检进行中','姿态采样暂时暂停；测试结束后恢复配置并重新校准。');
     if(t.present===false)return status('sensor_offline','danger','传感器尚未就绪','IMU 初始化未成功。保留启动日志和当前诊断信息，检查板型和传感器连接。');
     if(t.fault===true)return status('sample_fault','danger','传感器读取或采样异常','观察失效读数、采样中断和数据频率，导出日志用于进一步定位。');
-    if(t.valid===true)return status('ready','success','校准完成，姿态有效','已收到固件的有效姿态标记。网页继续监视传感器与采样状态。');
+    if(t.valid===true){
+      const stored=model.hardware.imu?.cal_store;
+      if(stored===-1)return status('ready_unsaved','warning','姿态有效，但校准未保存','当前姿态可用，校准数据未保存或存储不可用；下次开机可能需要重新校准。请导出日志排查。');
+      const description=stored===1?'已恢复保存的陀螺仪零偏与安装零点，无需重新采集静止样本。PWR 可重新校准并更新保存。':stored===2?'校准完成，正在等待保存到设备；保存成功后下次开机直接恢复。':stored===3?'本次校准已保存并通过回读校验，下次开机直接恢复。':'已收到固件的有效姿态标记。网页继续监视传感器与采样状态。';
+      return status('ready','success','校准完成，姿态有效',description);
+    }
     if(t.count>=t.total)return status('calibrated','neutral','校准样本已收集完成','等待固件输出有效姿态；如持续没有有效数据，请保留日志。');
     if(!model.diagnostic)return status('legacy','warning','校准尚未完成，缺少详细诊断','已识别旧版日志。要查看陀螺仪与具体拒绝原因，请先安装本包中的诊断固件。');
     if(t.count>0)return status('collecting','success','正在收集静止样本','请保持开发板静止。进度回退表示稳定窗口重新开始，不代表程序卡死。');
-    if(reasons[t.reason])return status(t.reason,'warning',...reasons[t.reason]);
+    if(reasons[t.reason])return status(t.reason,'warning',reasons[t.reason][0],rejectionDescription(t.reason,model.hardware.imu));
     return status('collecting','neutral','等待稳定样本','保持板子静止，观察进度和数据频率；持续为零时请导出日志。');
   }
 
@@ -125,7 +139,7 @@
     let advice='窗口内读数较稳定，继续结合固件拒绝原因与硬件自检排查。',tone='success';
     if(norm>10){advice='三轴平均合成速率超过 10°/s；确认完全静止后，重点排查陀螺仪零偏和异常读数。';tone='warning';}
     else if(low<=.85||high>=1.15){advice='加速度模长曾超出校准范围，检查振动、读数与供电。';tone='warning';}
-    else if(Math.hypot(...std)>.75){advice='网页采集到明显波动，请排除桌面振动和线材牵拉；校准仍以固件条件为准。';tone='warning';}
+    else if(Math.hypot(...std)>positiveLimit(model.hardware.imu,'cal_var_dps',.75)){advice='网页采集到明显波动，请排除桌面振动和线材牵拉；校准仍以固件条件为准。';tone='warning';}
     return {tone,mean,std,count:rows.length,text:`${rows.length} 个网页样本；陀螺仪均值 ${mean.map(x=>x.toFixed(2)).join(' / ')} °/s，标准差 ${std.map(x=>x.toFixed(2)).join(' / ')} °/s；加速度 ${low.toFixed(3)}–${high.toFixed(3)} g。${advice}`};
   }
   function hardwareChecks(model,now,connection){
@@ -140,6 +154,9 @@
       add('bus','IMU 通信与读数',['nack','short','sat','notready','repeats'].every(key=>i[key]!==undefined)?errors||frozen?'warning':'success':'neutral',`累计：通信失败 ${i.nack??'未读取'}，短读 ${i.short??'未读取'}，饱和 ${i.sat??'未读取'}，未就绪 ${i.notready??'未读取'}，重复时间戳 ${i.repeats??'未读取'}。`+(frozen?'连续报告的传感器时间戳没有推进，疑似数据冻结；请导出日志。':errors?'计数包含历史事件，观察是否持续增长。':'未就绪和少量重复可发生在启动或测试切换时，不等于硬件故障。'));
       add('temperature','IMU 温度',i.temp_c===undefined?'neutral':i.temp_c< -40||i.temp_c>85?'warning':'success',i.temp_c===undefined?'尚未读取温度。':`${i.temp_c.toFixed(2)} °C；这是芯片内部读数，不能代替精度或温漂校准。`);
     }else for(const [id,title] of [['identity','IMU 芯片与配置'],['bus','IMU 通信与读数'],['temperature','IMU 温度']])add(id,title,'neutral','未取得新的检测数据。连接设备并安装当前诊断固件；旧记录不代表当前状态。');
+    const stored=fresh('imu')?h.imu.cal_store:undefined;
+    const storageText={0:'当前尚无已恢复的校准记录；完成校准后尝试保存。',1:'已恢复当前方向的校准记录，无需重新采集静止窗口。',2:'新校准已完成，等待写入设备存储。',3:'校准数据已保存并通过回读校验，下次开机直接恢复。','-1':'校准存储不可用或保存失败；本次姿态可用时仍可显示，断电后可能需要重新校准。'};
+    add('calibration_store','校准数据存储',stored===1||stored===3?'success':stored===-1?'warning':'neutral',storageText[stored]||'固件未报告新的校准保存状态，不能判断是否已保存。');
     const st=fresh('selftest')?h.selftest:null;
     const result=code=>({'-1':'未检测',0:'响应低于手册阈值',1:'通过',3:'通信失败',4:'等待响应超时'})[code]||'未取得有效结果';
     add('selftest','IMU 内置自检',!st||!st.id||st.running===undefined?'neutral':st.running===1?'neutral':st.accel===1&&st.gyro===1&&st.restore===1?'success':'warning',!st||!st.id?'点击「IMU 自检」进行电静力响应检查；自检后恢复配置并重新校准。':st.running===1?'正在测试，姿态采样暂时暂停。':`加速度计：${result(st.accel)}；陀螺仪：${result(st.gyro)}；配置恢复：${st.restore===1?'成功':'未确认成功'}。`+(st.accel_mg?`加速度响应 ${st.accel_mg.map(x=>x.toFixed(1)).join(' / ')} mg；陀螺仪响应 ${st.gyro_dps?.map(x=>x.toFixed(1)).join(' / ')||'未读取'} °/s。`:'')+'自检失败也可能由通信或供电异常引起。');

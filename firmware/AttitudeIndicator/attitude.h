@@ -5,6 +5,7 @@ struct Vec3 { float x, y, z; };
 class AttitudeFilter {
 public:
   void reset(Vec3 acceleration);
+  bool restoreReference(Vec3 zeroAcceleration,Vec3 currentAcceleration);
   bool update(Vec3 acceleration, Vec3 gyroRadPerSec, float dtSeconds);
   void zeroReference();
   float pitch() const;
@@ -25,6 +26,10 @@ public:
   Vec3 bias() const { return gyroMean_; }
   Vec3 acceleration() const { return accelMean_; }
   static constexpr unsigned RequiredSamples = 400;
+  static constexpr float MaxRawRateDps = 10.f;
+  static constexpr float MaxRateChangeDps = 5.f;
+  static constexpr float MaxInstantAccelerationChangeG = .075f;
+  static constexpr float MaxMeanAccelerationChangeG = .05f;
 private:
   Rejection rejection_ = Rejection::None;
   unsigned count_ = 0;

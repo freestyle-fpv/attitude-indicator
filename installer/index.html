@@ -13,7 +13,7 @@
 <section class="hero install-hero"><div><div class="eyebrow">COCKPIT INSTRUMENTS / USB INSTALLER</div><h1>一块圆屏，四种飞行视角。</h1><p>为固定翼 FPV 座舱打造的开源仪表。连接 USB，将圆形姿态仪、HUD、空速表和高度计装进你的飞机。</p></div></section>
 <div class="install-grid">
 <section class="panel install-main"><h2>把仪表装进开发板</h2><p class="board-name">Waveshare ESP32-S3-Touch-AMOLED-1.75</p>
-<ol class="steps"><li><strong>连接开发板</strong>在电脑 Chrome 或 Edge 打开本页，使用 USB 数据线连接开发板。</li><li><strong>选择串口并安装</strong>点击下方按钮，选择开发板的 USB 串口，按中文提示确认并安装。已连接诊断的设备可直接安装。</li><li><strong>装好，静止，重新上电</strong>看到「安装完成」后关闭安装窗口，即可直接切换到设备诊断。按实际方向装好开发板，让模型保持水平静止，再重新上电；仪表会自动校准。</li></ol>
+<ol class="steps"><li><strong>连接开发板</strong>在电脑 Chrome 或 Edge 打开本页，使用 USB 数据线连接开发板。</li><li><strong>选择串口并安装</strong>点击下方按钮，选择开发板的 USB 串口，按中文提示确认并安装。已连接诊断的设备可直接安装。</li><li><strong>首次校准，保存后直接启动</strong>安装完成后按实际方向装好开发板，让模型保持水平静止，短按 PWR 校准。成功后自动保存；以后开机恢复零偏与安装零点，无需重复校准。</li></ol>
 <p id="loading" role="status">安装器尚未启动。请在电脑上用最新版 Chrome 或 Edge 打开，并允许 JavaScript 运行。</p>
 <div id="installerControl" hidden><button id="installFirmware" class="primary" type="button">安装固件</button><p id="installStatus" role="status" hidden></p></div>
 <noscript>请启用 JavaScript 后重新打开此页。</noscript>
@@ -31,8 +31,8 @@
 <div class="gallery-controls"><button id="dialPrevious" class="gallery-arrow" aria-label="上一个表盘">←</button><div class="gallery-dots" role="group" aria-label="选择表盘"><button aria-label="查看圆形姿态仪" aria-pressed="true" data-dial="0"></button><button aria-label="查看 HUD 姿态仪" aria-pressed="false" data-dial="1"></button><button aria-label="查看空速表" aria-pressed="false" data-dial="2"></button><button aria-label="查看高度计" aria-pressed="false" data-dial="3"></button></div><button id="dialNext" class="gallery-arrow" aria-label="下一个表盘">→</button></div>
 </aside>
 </div>
-<details id="startup-diagnostics" hidden open><summary>安装器启动诊断</summary><pre id="startup-error"></pre><p>请从 <a href="https://github.com/freestyle-fpv/attitude-indicator/releases/tag/v0.2.1">v0.2.1 发布页</a> 下载 USB 安装包并解压。源码中的模板不能直接安装。</p></details>
-<div class="support"><details><summary>首次安装与校准</summary><p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择「清除设备数据」清除旧数据。重装本项目时，保持该选项未勾选即可保留设置。</p><p>若烧录时已在桌面完成自动校准，装回座舱后让模型保持水平静止，短按 PWR 重新校准，或重新上电自动校准。</p></details><details><summary>没有串口，或校准一直不动</summary><p>先关闭其他串口工具，重新插拔 USB 数据线。仍无法连接时，完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p><p>能够启动但校准进度长期为零？使用<a href="#diagnostics">设备诊断</a>查看实时读数，并导出报告反馈。</p></details></div>
+<details id="startup-diagnostics" hidden open><summary>安装器启动诊断</summary><pre id="startup-error"></pre><p>请从 <a href="https://github.com/freestyle-fpv/attitude-indicator/releases/tag/v0.2.2">v0.2.2 发布页</a> 下载 USB 安装包并解压。源码中的模板不能直接安装。</p></details>
+<div class="support"><details><summary>首次安装与校准</summary><p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择「清除设备数据」清除旧数据。重装本项目时，保持该选项未勾选即可保留设置和已保存的校准。</p><p>没有有效校准记录时，仪表自动采集约 2 秒静止样本并保存。如果首次在桌面完成了校准，装回座舱后让模型保持水平静止，短按 PWR 更新零点。正常重启会恢复保存的数据；更换安装方向会重新校准并保存该方向记录。温度变化后若零点漂移，可再次短按 PWR。</p></details><details><summary>没有串口，或校准一直不动</summary><p>先关闭其他串口工具，重新插拔 USB 数据线。仍无法连接时，完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p><p>能够启动但校准进度长期为零？使用<a href="#diagnostics">设备诊断</a>查看实时读数，并导出报告反馈。</p></details></div>
 <p class="connection-help">空速、高度与航向目前为模拟数据；真实姿态来自板载六轴 IMU。仅适用于上方指定板型。</p>
 </div>
 <div id="diagnosticsPage" hidden>
@@ -67,7 +67,7 @@
 <noscript>请启用 JavaScript 后使用设备诊断。</noscript>
 </div>
 </main>
-<footer class="foot"><span>固件 __FIRMWARE_VERSION__ · 安装器 r__INSTALLER_REVISION__ · 离线运行</span><a href="https://github.com/donne1226/attitude-indicator" target="_blank" rel="noreferrer">开源项目</a></footer>
+<footer class="foot"><span>固件 __FIRMWARE_VERSION__ · 安装器 r__INSTALLER_REVISION__ · 离线运行</span><a href="https://github.com/freestyle-fpv/attitude-indicator" target="_blank" rel="noreferrer">开源项目</a></footer>
 </div>
 <dialog id="reportDialog" class="report-dialog" aria-labelledby="reportTitle"><header><div><h2 id="reportTitle">诊断报告已生成</h2><p id="reportFilename" class="mono"></p></div><button id="reportClose" class="small quiet" aria-label="关闭报告预览">关闭</button></header><p id="reportFeedback" role="status"></p><label for="reportContents">报告预览（可选中复制）</label><textarea id="reportContents" readonly spellcheck="false"></textarea><div class="report-actions"><button id="reportCopy">复制报告</button><a id="reportDownload" class="button primary" download>下载报告</a></div></dialog>
   <script type="application/json" id="firmware">__FIRMWARE_PAYLOAD__</script>

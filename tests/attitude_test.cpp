@@ -1,3 +1,4 @@
+#include "calibration_jitter_fixture.h"
 #include "../firmware/AttitudeIndicator/attitude.h"
 #include <cmath>
 #include <cstdio>
@@ -80,7 +81,7 @@ int main(){
   check(ready&&near(c.bias().y,.026f,.0001f),"short gyro fluctuations average out on a stationary fixture");
   c.reset();
   for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0.026f,0});
-  for(int i=0;i<4;++i)c.add({0,0,-1},{0,0.049f,0});
+  for(int i=0;i<4;++i)c.add({0,0,-1},{0,0.146f,0});
   check(c.count()==0,"changing angular velocity rejects motion below absolute bias ceiling");
   c.reset();
   for(int i=0;i<200;++i)c.add({0,0,-1},{0,0,0});
@@ -101,18 +102,59 @@ int main(){
     "calibration diagnostics distinguish invalid gravity from gyro motion");
   c.reset();
   for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,.026f,0});
-  for(unsigned i=0;i<4;++i)c.add({0,0,-1},{0,.049f,0});
+  for(unsigned i=0;i<4;++i)c.add({0,0,-1},{0,.146f,0});
   check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroVariation,
     "calibration diagnostics identify a changing gyro block mean");
   c.reset();
   for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0,0});
-  for(unsigned i=0;i<4;++i)c.add({.04f,0,-1},{0,0,0});
+  for(unsigned i=0;i<4;++i)c.add({.06f,0,-1},{0,0,0});
   check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::AccelerationMotion,
     "calibration diagnostics identify gravity-direction changes below the instant-motion gate");
   c.reset();
   for(unsigned i=0;i<400;++i)ready=c.add({-.298f,-.375f,.917f},{.004f,.026f,.006f});
   check(ready&&c.rejection()==StationaryCalibration::Rejection::None,
     "reported 1.03g gravity vector completes calibration when the gyro is stable");
+  for(unsigned mode=0;mode<3;++mode){
+    c.reset();ready=false;
+    for(unsigned i=0;i<399;++i){auto sample=calibration_fixture::mild(i);
+      if(mode==0)sample.acceleration={0,0,-1};
+      if(mode==1)sample.gyro=calibration_fixture::bias();
+      ready|=c.add(sample.acceleration,sample.gyro);
+    }
+    check(!ready&&c.count()<400,"mild jitter still cannot finish calibration before 400 samples");
+    auto sample=calibration_fixture::mild(399);
+    if(mode==0)sample.acceleration={0,0,-1};
+    if(mode==1)sample.gyro=calibration_fixture::bias();
+    ready=c.add(sample.acceleration,sample.gyro);
+    check(ready&&c.count()==400,mode==0?"bounded gyro vibration can complete calibration":mode==1?"bounded acceleration vibration can complete calibration":"combined mild vibration can complete calibration");
+    const auto expected=calibration_fixture::bias(),measured=c.bias(),gravity=c.acceleration();
+    check(ready&&near(measured.x,expected.x,.000001f)&&near(measured.y,expected.y,.000001f)&&near(measured.z,expected.z,.000001f),
+      "balanced mild jitter does not bias the estimated stationary gyro offset");
+    check(ready&&near(gravity.x,0,.00001f)&&near(gravity.y,0,.00001f)&&near(gravity.z,-1,.00001f),
+      "balanced acceleration jitter preserves the mean mounting reference");
+  }
+  c.reset();ready=false;
+  for(unsigned i=0;i<400;++i){
+    const float angle=4.f*radiansPerDegree*i/399;
+    ready|=c.add({std::sin(angle),0,-std::cos(angle)},{0,2*radiansPerDegree,0});
+  }
+  check(!ready&&c.count()<400,"continuous four-degree pitch change cannot masquerade as a full stable window");
+  for(const float change:{4.99f,5.01f}){
+    c.reset();for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0,0});
+    for(unsigned i=0;i<4;++i)c.add({0,0,-1},{0,change*radiansPerDegree,0});
+    check(change<5?c.count()==104:c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroVariation,
+      "five-degree-per-second gyro-variation gate accepts below and rejects above its boundary");
+  }
+  for(const float change:{.049f,.051f}){
+    c.reset();for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0,0});
+    for(unsigned i=0;i<4;++i)c.add({change,0,-1},{0,0,0});
+    check(change<.05f?c.count()==104:c.count()==0&&c.rejection()==StationaryCalibration::Rejection::AccelerationMotion,
+      "mean acceleration gate accepts mild displacement and rejects above 0.05g");
+  }
+  c.reset();for(unsigned i=0;i<100;++i)c.add({0,0,-1},{0,0,0});
+  c.add({.076f,0,-1},{0,0,0});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::AccelerationMotion,
+    "instant acceleration spike still resets the complete calibration window");
   std::printf("%d failures\n",failures);
   return failures?1:0;
 }

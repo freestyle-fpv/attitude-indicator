@@ -30,6 +30,7 @@
 #include "instrument_controls.h"
 #include "touch_gesture.h"
 #include "calibration_controls.h"
+#include "calibration_store.h"
 #include "instrument_settings.h"
 
 namespace instrument { extern uint32_t renderStages[4]; }
@@ -55,6 +56,11 @@ instrument::DisplayPipeline displayPipeline;
 instrument::FpsOverlay fpsOverlay(true);
 uint16_t* frames[instrument::DisplayBufferCount]={};
 QueueHandle_t snapshots=nullptr,commands=nullptr;
+QueueHandle_t calibrationSaves=nullptr;
+instrument::CalibrationRecord initialCalibration;
+// -1 storage unavailable/failed, 0 no current record, 1 restored,
+// 2 save pending, 3 saved and read back successfully.
+std::atomic<uint32_t> calibrationStoreStatus{0};
 struct CalibrationRequest {uint32_t id;UsbSide side;};
 struct TouchAction {uint32_t context;int16_t x,y;int8_t direction;};
 QueueHandle_t touchActions=nullptr;
@@ -303,6 +309,8 @@ void samplingTask(void*) {
   Vec3 bias{0,0,0};
   Snapshot state;
   UsbSide side=initialSide;
+  bool restorePending=instrument::validCalibrationRecord(initialCalibration,side);
+  uint32_t storageEpoch=0;
   instrument::CalibrationButton bootButton;
   bool initialized=false,havePrevious=false;
   uint32_t lastAttempt=millis()-1000,previousMicros=0;
@@ -310,6 +318,7 @@ void samplingTask(void*) {
   for(;;){
     CalibrationRequest command;
     if(xQueueReceive(commands,&command,0)==pdTRUE){
+      restorePending=false;calibrationStoreStatus.store(++storageEpoch<<3);
       state.calibrationId=command.id;
       side=command.side;
       state.calibrated=false;
@@ -332,6 +341,7 @@ void samplingTask(void*) {
       state.sampledAt=0;
     }
     if(imuSelfTestRequested.exchange(false)){
+      restorePending=false;calibrationStoreStatus.store(++storageEpoch<<3);
       imuHardware.testing=true;++imuHardware.selfTestId;
       state.sampleFault=true;state.hardware=imuHardware;xQueueOverwrite(snapshots,&state);
       ImuTestBus bus;
@@ -371,13 +381,24 @@ void samplingTask(void*) {
         ++state.imuSampleGaps;
         if(!state.calibrated)calibration.reset();
       }
-      if(!state.calibrated){
+      if(restorePending){
+        if(instrument::restoreCalibration(filter,initialCalibration,side,acceleration,bias)){
+          restorePending=false;state.calibrated=true;
+          state.calibrationCount=state.calibrationPeak=instrument::StationaryCalibration::RequiredSamples;
+          state.calibrationReason=instrument::StationaryCalibration::Rejection::None;
+          calibrationStoreStatus.store((storageEpoch<<3)|1u);
+        }
+        // Establish a new interval before authorizing the restored pose.
+        state.sampleFault=true;
+      }else if(!state.calibrated){
         if(calibration.add(acceleration,gyro)){
           bias=calibration.bias();
           filter.reset(calibration.acceleration());
           filter.zeroReference();
           state.calibrated=true;
           state.calibrationReason=instrument::StationaryCalibration::Rejection::None;
+          const instrument::CalibrationSaveRequest save={instrument::makeCalibrationRecord(side,bias,calibration.acceleration()),(storageEpoch<<3)|2u};
+          calibrationStoreStatus.store(save.token);xQueueOverwrite(calibrationSaves,&save);
         }
         state.calibrationCount=calibration.count();
         if(state.calibrationCount>state.calibrationPeak)state.calibrationPeak=state.calibrationCount;
@@ -512,8 +533,9 @@ void emitServiceDiagnostics(const Snapshot& state){
   if(!part&&uint32_t(now-lastHardware)>=1000){part=1;lastHardware=now;}
   const auto& h=state.hardware;
   switch(part){
-    case 1:n=snprintf(line,sizeof(line),"IMUHW who=%d alt_who=%d rev=%d ctrl2=%d ctrl3=%d ctrl7=%d temp_c=%.2f nack=%lu short=%lu sat=%lu notready=%lu repeats=%lu timestamp=%lu restore=%d\n",
-      h.who,h.altWho,h.revision,h.ctrl2,h.ctrl3,h.ctrl7,h.temperature,(unsigned long)h.nack,(unsigned long)h.shortRead,(unsigned long)h.saturated,(unsigned long)h.notReady,(unsigned long)h.repeatedTimestamp,(unsigned long)h.timestamp,h.restored);break;
+    case 1:n=snprintf(line,sizeof(line),"IMUHW who=%d alt_who=%d rev=%d ctrl2=%d ctrl3=%d ctrl7=%d temp_c=%.2f nack=%lu short=%lu sat=%lu notready=%lu repeats=%lu timestamp=%lu restore=%d cal_max_dps=%.1f cal_var_dps=%.2f cal_step_g=%.3f cal_mean_g=%.3f cal_store=%d\n",
+      h.who,h.altWho,h.revision,h.ctrl2,h.ctrl3,h.ctrl7,h.temperature,(unsigned long)h.nack,(unsigned long)h.shortRead,(unsigned long)h.saturated,(unsigned long)h.notReady,(unsigned long)h.repeatedTimestamp,(unsigned long)h.timestamp,h.restored,
+      instrument::StationaryCalibration::MaxRawRateDps,instrument::StationaryCalibration::MaxRateChangeDps,instrument::StationaryCalibration::MaxInstantAccelerationChangeG,instrument::StationaryCalibration::MaxMeanAccelerationChangeG,instrument::calibrationStorageCode(calibrationStoreStatus.load()));break;
     case 2:n=snprintf(line,sizeof(line),"BOARD pmu=%d adc=%d touch=%d expander=%d panel=%d battery=%d vbus_good=%d vbus_mv=%u sys_mv=%u batt_mv=%u heap=%u heap_min=%u heap_largest=%u psram=%u psram_free=%u flash=%u reset=%d nvs=%d tx_drop=%lu\n",
       h.pmu,h.adc,h.touch,h.expander,panelReady.load(),h.battery,h.vbusGood,h.vbusMv,h.systemMv,h.batteryMv,
       ESP.getFreeHeap(),ESP.getMinFreeHeap(),ESP.getMaxAllocHeap(),ESP.getPsramSize(),ESP.getFreePsram(),ESP.getFlashChipSize(),int(esp_reset_reason()),preferencesReady,(unsigned long)txDrops);break;
@@ -545,6 +567,13 @@ void setup() {
   if(preferencesReady)settingsMenu.options=instrument::DisplayOptions::decode(preferences.getUChar("display",4));
   else Serial.println("MENU settings storage unavailable");
   initialSide=requestedImuSide=settingsMenu.options.side;
+  if(preferencesReady&&instrument::loadCalibration(preferences,initialSide,initialCalibration)){
+    calibrationStoreStatus.store(0);
+    Serial.println("CALIBRATION stored zero and bias found; restore after fresh IMU sample");
+  }else{
+    calibrationStoreStatus.store(preferencesReady?0u:4u);
+    Serial.println("CALIBRATION no valid stored record; keep installation level and still for first calibration");
+  }
   touchContext.store(unsigned(initialSide));
   Wire.begin(board::Sda,board::Scl,400000);
   Wire.setTimeOut(20);
@@ -573,8 +602,9 @@ void setup() {
   initializeTouch();
   snapshots=xQueueCreate(1,sizeof(Snapshot));
   commands=xQueueCreate(1,sizeof(CalibrationRequest));
+  calibrationSaves=xQueueCreate(1,sizeof(instrument::CalibrationSaveRequest));
   touchActions=xQueueCreate(4,sizeof(TouchAction));
-  if(!snapshots||!commands||!touchActions)stopWithMessage("NO QUEUE MEMORY");
+  if(!snapshots||!commands||!touchActions||!calibrationSaves)stopWithMessage("NO QUEUE MEMORY");
   if(xTaskCreatePinnedToCore(samplingTask,"attitude",6144,nullptr,3,nullptr,0)!=pdPASS)
     stopWithMessage("IMU TASK FAILED");
   if(!displayPipeline.begin(display,fastPanel,renderer,airspeedRenderer,altimeterRenderer,hudRenderer,frames,snapshots))stopWithMessage("DISPLAY TASK FAILED");
@@ -584,6 +614,12 @@ void setup() {
 
 void loop() {
   controls();
+  instrument::CalibrationSaveRequest completedCalibration;
+  if(xQueueReceive(calibrationSaves,&completedCalibration,0)==pdTRUE){
+    const bool saved=preferencesReady&&instrument::saveCalibration(preferences,completedCalibration.record);
+    instrument::finishCalibrationSave(calibrationStoreStatus,completedCalibration.token,saved);
+    Serial.printf("CALIBRATION storage=%s usb=%s; %s\n",saved?"saved":"failed",instrument::SettingsMenu::sideLabel(UsbSide(completedCalibration.record.side)),saved?"reuse on next boot":"current pose works but next boot may require calibration");
+  }
   instrumentControls.update(millis());
   Snapshot state;
   xQueuePeek(snapshots,&state,0);

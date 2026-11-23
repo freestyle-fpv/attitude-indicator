@@ -14,7 +14,7 @@ import urllib.request
 import zipfile
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from localize_web_tools import localize_dialog, theme_dialog
+from localize_web_tools import localize_dialog, theme_dialog, simplify_dialog
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,7 +22,7 @@ BUILD = ROOT / "build" / "firmware"
 SKETCH = "AttitudeIndicator.ino"
 CORE = ROOT / ".arduino/data/packages/esp32/hardware/esp32/3.3.10"
 WEB_TOOLS_VERSION = "10.5.2"
-INSTALLER_REVISION = 5
+INSTALLER_REVISION = 6
 WEB_TOOLS_URL = f"https://registry.npmjs.org/esp-web-tools/-/esp-web-tools-{WEB_TOOLS_VERSION}.tgz"
 WEB_TOOLS_SHA512 = (
     "i5qsHv1bnrb/9gmKEN7qIaDTMOMy6OctrgFVXStrU2s79erY2Z7IKydveNk0"
@@ -93,7 +93,7 @@ def build_web_tools(esbuild, cache):
                 if member.isfile() and str(path.parent) == "package/dist/web" and path.suffix == ".js":
                     content = tar.extractfile(member).read().decode("utf-8")
                     if path.name.startswith("install-dialog-"):
-                        content = localize_dialog(content)
+                        content = localize_dialog(simplify_dialog(content))
                     if path.name.startswith("styles-"):
                         content = theme_dialog(content)
                     (stage / path.name).write_text(content, encoding="utf-8")
@@ -161,17 +161,19 @@ def main():
             f"安装器修订：r{INSTALLER_REVISION}\n\n"
             f"解压后在电脑 Chrome 或 Edge 中打开 {page_name}。\n"
             "用 USB 数据线连接开发板，点击「安装固件」，选择新出现的串口，\n"
-            "按中文提示选择「安装」→「下一步」→「安装」。完成后关闭安装窗口。\n"
-            "按实际方向装好开发板，让模型保持水平静止，再重新上电，仪表会自动校准，无需按键。\n"
-            "若烧录时已在桌面完成自动校准，装回座舱后可短按 PWR 重新校准，或重新上电自动校准。\n"
-            "重装时不勾选「清除设备数据」，即可保留安装方向和 FPS 设置。\n"
+            "确认清除数据选项后选择「下一步」→「安装」。完成后点击右下角「关闭」。\n"
+            "没有有效记录时，首次开机保持水平静止约 2 秒，校准完成后自动保存。\n"
+            "以后开机直接恢复保存的零偏与安装零点，不再重新采集静止样本。\n"
+            "若首次在桌面完成了校准，装回座舱后请保持水平静止，短按 PWR 更新并保存零点。\n"
+            "更换安装方向会重新校准并保存该方向记录；温漂后也可用 PWR 重新校准。\n"
+            "重装时不勾选「清除设备数据」，可保留安装方向、FPS 设置和已保存的校准。\n"
             "安装页内含固件和烧录工具，可以离线运行。\n\n"
             "设备诊断：在同一页面点击顶部「设备诊断」。安装与诊断共用已选择的串口。\n"
             "关闭安装窗口后自动恢复诊断；切换页面无需重新连接。请关闭其他串口监视器。\n"
             "如果 USB 被拔出或系统重新枚举导致串口失效，请点击连接设备重新选择。\n"
             "诊断页可查看校准进度、传感器读数和异常原因，导入日志或一键导出诊断报告。\n"
             "「查看示例」展示模拟数据，连接实机时会清空示例。所有诊断数据仅在本地处理。\n\n"
-            "固件源码：https://github.com/donne1226/attitude-indicator\n"
+            "固件源码：https://github.com/freestyle-fpv/attitude-indicator\n"
         ))
         package.writestr("licenses/ESP-Web-Tools.txt", (
             f"ESP Web Tools {WEB_TOOLS_VERSION}\nhttps://github.com/esphome/esp-web-tools\n\n"
