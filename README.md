@@ -92,9 +92,9 @@ python3 -m http.server 8766 --bind 127.0.0.1 --directory preview
 
 ## USB 一键安装
 
-当前发布版本为 **v0.2**，主分支为 `master`。在 [GitHub Releases](https://github.com/donne1226/attitude-indicator/releases/tag/v0.2) 下载 `Attitude-Indicator-v0.2-USB-Installer-r5.zip`。
+当前发布版本为 **v0.2.1**，主分支为 `master`。在 [GitHub Releases](https://github.com/freestyle-fpv/attitude-indicator/releases/tag/v0.2.1) 下载 `Attitude-Indicator-v0.2.1-USB-Installer-r5.zip`。
 
-v0.2 包含固件和安装器 r5，合并安装与中文硬件诊断。源码中的 `installer/index.html` 是打包模板，没有内嵌固件和烧录工具，不能直接安装；若页面版本仍显示 `__FIRMWARE_VERSION__`，请改用发布页的安装包，不要下载源码 ZIP 代替安装包。
+v0.2.1 将静止校准的原始陀螺仪三轴合成上限由 5°/s 调整为 10°/s，继续保留 0.75°/s 变化门限、加速度稳定检查和 400 样本要求。固件与安装器 r5 合并安装和中文硬件诊断。源码中的 `installer/index.html` 是打包模板，没有内嵌固件和烧录工具，不能直接安装；若页面版本仍显示 `__FIRMWARE_VERSION__`，请改用发布页的安装包，不要下载源码 ZIP 代替安装包。
 
 修订版会在误开源码模板、浏览器不支持、页面权限受限或脚本启动失败时显示具体提示和启动诊断；反馈时请附上诊断内容。不要在聊天软件或网盘的文件预览中运行安装页。
 
@@ -106,12 +106,12 @@ v0.2 包含固件和安装器 r5，合并安装与中文硬件诊断。源码中
 
 ```sh
 sh tools/build.sh
-python3 tools/package_installer.py --version v0.2
+python3 tools/package_installer.py --version v0.2.1
 ```
 
 安装页启动回归测试为 `node tests/installer_loading_test.js`（Node.js 18+），也包含在 `sh tools/test.sh` 中。
 
-发布后续版本时，更新 `firmware/AttitudeIndicator/firmware_version.h`，并将 `v0.2` 替换为目标版本号。ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
+发布后续版本时，更新 `firmware/AttitudeIndicator/firmware_version.h`，并将 `v0.2.1` 替换为目标版本号。ZIP 和 SHA-256 校验文件输出到 `build/installer/`。打包器对照 Arduino 合并镜像核验四个写入段，首次打包会下载并校验固定版本的 ESP Web Tools。[ESP Web Tools 文档](https://esphome.github.io/esp-web-tools/)
 
 ## 网页设备诊断
 
@@ -121,7 +121,7 @@ v0.2 的安装器 r5 将安装与设备诊断合并为一个 `安装器.html`，
 - 中文显示最近一次稳定性拒绝原因；旧固件缺少的字段保持空缺，提示安装诊断固件。
 - 导入 `.txt` / `.log` 历史日志，或一键导出包含原始记录的诊断报告。所有日志在本地处理。
 - 「查看示例」明确标注模拟数据，连接实机时清空示例。数据过期、设备断开与历史导入会分别标识。
-- 页面与固件日志均有限缓冲，电脑不读取时不会阻塞仪表；校准条件保持原行为。
+- 页面与固件日志均有限缓冲，电脑不读取时不会阻塞仪表；诊断统计按当前 10°/s 上限解释，旧日志的拒绝原因仍以当时固件为准。
 
 安装弹窗已汉化；系统原生串口选择器的语言由浏览器/系统决定。四表盘预览可自动轮播、暂停、通过箭头/圆点/键盘切换，截图不显示 FPS；开启系统减少动态效果时默认暂停。
 

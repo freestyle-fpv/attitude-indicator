@@ -31,7 +31,7 @@
 <div class="gallery-controls"><button id="dialPrevious" class="gallery-arrow" aria-label="上一个表盘">←</button><div class="gallery-dots" role="group" aria-label="选择表盘"><button aria-label="查看圆形姿态仪" aria-pressed="true" data-dial="0"></button><button aria-label="查看 HUD 姿态仪" aria-pressed="false" data-dial="1"></button><button aria-label="查看空速表" aria-pressed="false" data-dial="2"></button><button aria-label="查看高度计" aria-pressed="false" data-dial="3"></button></div><button id="dialNext" class="gallery-arrow" aria-label="下一个表盘">→</button></div>
 </aside>
 </div>
-<details id="startup-diagnostics" hidden open><summary>安装器启动诊断</summary><pre id="startup-error"></pre><p>请从 <a href="https://github.com/donne1226/attitude-indicator/releases/tag/v0.2">v0.2 发布页</a> 下载 USB 安装包并解压。源码中的模板不能直接安装。</p></details>
+<details id="startup-diagnostics" hidden open><summary>安装器启动诊断</summary><pre id="startup-error"></pre><p>请从 <a href="https://github.com/freestyle-fpv/attitude-indicator/releases/tag/v0.2.1">v0.2.1 发布页</a> 下载 USB 安装包并解压。源码中的模板不能直接安装。</p></details>
 <div class="support"><details><summary>首次安装与校准</summary><p>安装会替换板上的程序。从出厂测试程序换装时，可在确认窗口选择「清除设备数据」清除旧数据。重装本项目时，保持该选项未勾选即可保留设置。</p><p>若烧录时已在桌面完成自动校准，装回座舱后让模型保持水平静止，短按 PWR 重新校准，或重新上电自动校准。</p></details><details><summary>没有串口，或校准一直不动</summary><p>先关闭其他串口工具，重新插拔 USB 数据线。仍无法连接时，完全断电，按住 BOOT 再重新上电，等串口出现后松手并重试。</p><p>能够启动但校准进度长期为零？使用<a href="#diagnostics">设备诊断</a>查看实时读数，并导出报告反馈。</p></details></div>
 <p class="connection-help">空速、高度与航向目前为模拟数据；真实姿态来自板载六轴 IMU。仅适用于上方指定板型。</p>
 </div>

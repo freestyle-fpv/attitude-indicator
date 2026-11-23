@@ -7,7 +7,7 @@
   const integer=value=>{const n=numeric(value);return n!==null&&n>=0&&Number.isInteger(n)?n:null;};
   const triple=value=>{if(!value)return null;const a=value.split(',').map(numeric);return a.length===3&&a.every(x=>x!==null)?a:null;};
   const reasons={
-    gyro_rate:['陀螺仪速率超限','最近一次校准样本超过了 5°/s 限制。请固定静止观察；持续出现时导出日志，进一步判断零偏或异常读数。'],
+    gyro_rate:['陀螺仪速率超限','最近一次校准样本超过了固件的速率限制（v0.2.1 起为 10°/s，旧版为 5°/s）。请固定静止观察；持续出现时导出日志，进一步判断零偏或异常读数。'],
     gyro_variation:['陀螺仪读数变化较大','相邻采样块的陀螺仪变化超过稳定性条件。先排除晃动、桌面振动与 USB 线牵拉，再保留日志排查。'],
     accel_motion:['重力方向发生变化','校准检测到加速度向量变化。固定板子并等待一个完整的稳定窗口。'],
     gravity_range:['加速度超出校准范围','加速度模长不在 0.85–1.15g 内。固定静止后若持续超限，请导出日志进一步排查。'],
@@ -123,7 +123,7 @@
     const std=[0,1,2].map(i=>Math.sqrt(rows.reduce((sum,r)=>sum+(r.gyro[i]-mean[i])**2,0)/rows.length));
     const gravity=rows.map(r=>r.gravity),low=Math.min(...gravity),high=Math.max(...gravity),norm=Math.hypot(...mean);
     let advice='窗口内读数较稳定，继续结合固件拒绝原因与硬件自检排查。',tone='success';
-    if(norm>5){advice='三轴平均合成速率超过 5°/s；确认完全静止后，重点排查陀螺仪零偏和异常读数。';tone='warning';}
+    if(norm>10){advice='三轴平均合成速率超过 10°/s；确认完全静止后，重点排查陀螺仪零偏和异常读数。';tone='warning';}
     else if(low<=.85||high>=1.15){advice='加速度模长曾超出校准范围，检查振动、读数与供电。';tone='warning';}
     else if(Math.hypot(...std)>.75){advice='网页采集到明显波动，请排除桌面振动和线材牵拉；校准仍以固件条件为准。';tone='warning';}
     return {tone,mean,std,count:rows.length,text:`${rows.length} 个网页样本；陀螺仪均值 ${mean.map(x=>x.toFixed(2)).join(' / ')} °/s，标准差 ${std.map(x=>x.toFixed(2)).join(' / ')} °/s；加速度 ${low.toFixed(3)}–${high.toFixed(3)} g。${advice}`};

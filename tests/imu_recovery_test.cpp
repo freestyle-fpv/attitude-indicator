@@ -85,6 +85,16 @@ static void recovered(uint32_t first){
   steps.emplace_back(first+5,SampleResult::Valid,Vec3{0,0,0},Vec3{.543598776f,0,0});
 }
 int main(){
+  const Vec3 reportedBias={-.0036651914f,.060213859f,-.069987703f};
+  steps.clear();
+  for(unsigned i=0;i<800;++i)steps.emplace_back(1000+i*5,SampleResult::Valid,
+    i<400?Vec3{0,0,-1}:Vec3{0,0,0},reportedBias);
+  run();
+  check(!observed[398].calibrated&&observed[399].calibrated,
+    "sampler calibrates reported 5.29 deg/s bias only after all 400 samples");
+  check(instrument::currentAttitude(observed.back(),4995)&&near(observed.back().pitch,0,.02f)&&
+    near(observed.back().roll,0,.02f),"sampler subtracts reported bias without relying on gravity to hide drift");
+
   calibrated();run();
   check(observed.back().calibrated&&near(observed.back().roll,30),"fixture calibrates mounting trim and gyro bias before motion");
 

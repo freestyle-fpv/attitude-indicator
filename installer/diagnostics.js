@@ -124,7 +124,7 @@
    if(model.source==='example'){exitSource();return;}
    stopExample();model.clear();resetView();model.source='example';viewError='';const now=Date.now();
    function sample(i,time){
-     const x=6.25+Math.sin(i*.5)*.11,y=-.5+Math.sin(i*.7)*.03,z=.125+Math.cos(i*.6)*.02;
+     const x=11.25+Math.sin(i*.5)*.11,y=-.5+Math.sin(i*.7)*.03,z=.125+Math.cos(i*.6)*.02;
      model.add(`IMUFAST seq=${i} present=1 fault=0 valid=0 accel_g=-0.298,-0.375,0.917 cal=0/400 peak=4 reject=${600+i} reason=gyro_rate gyro_dps=${x.toFixed(3)},${y.toFixed(3)},${z.toFixed(3)} g=1.035 hz=200.0 invalid=0 gaps=0 age_ms=5`,time);
    }
    for(let i=0;i<200;i++)sample(i,now-(199-i)*50);

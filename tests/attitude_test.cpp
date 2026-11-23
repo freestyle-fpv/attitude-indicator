@@ -47,6 +47,27 @@ int main(){
   c.reset();
   for(unsigned i=0;i<400;++i)ready=c.add({0,0,-1},{0.004f,0.026f,0.006f});
   check(ready&&near(c.bias().y,0.026f,0.00001f),"measured 1.55 deg/s stationary QMI bias can be calibrated");
+  const float radiansPerDegree=0.01745329252f;
+  const Vec3 reportedBias={-.21f*radiansPerDegree,3.45f*radiansPerDegree,-4.01f*radiansPerDegree};
+  c.reset();ready=false;
+  for(unsigned i=0;i<399;++i){
+    const float noise=(i%2?.12f:-.12f)*radiansPerDegree;
+    ready|=c.add({.985f,.1809f,-.0311f},{reportedBias.x+noise,reportedBias.y-noise,reportedBias.z+noise});
+  }
+  check(!ready&&c.count()<400,"reported 5.29 deg/s bias still requires a complete stationary window");
+  const float noise=.12f*radiansPerDegree;
+  ready=c.add({.985f,.1809f,-.0311f},{reportedBias.x+noise,reportedBias.y-noise,reportedBias.z+noise});
+  check(ready&&near(c.bias().x,reportedBias.x,.000001f)&&near(c.bias().y,reportedBias.y,.000001f)&&
+    near(c.bias().z,reportedBias.z,.000001f),"reported 5.29 deg/s stable bias calibrates despite small sample noise");
+  c.reset();
+  for(unsigned i=0;i<400;++i)ready=c.add({0,0,-1},{9.99f*radiansPerDegree,0,0});
+  check(ready,"stationary bias just below 10 deg/s is accepted");
+  c.add({0,0,-1},{10.01f*radiansPerDegree,0,0});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroRate,
+    "sample just above 10 deg/s resets calibration with raw-rate rejection");
+  c.add({0,0,-1},{6*radiansPerDegree,6*radiansPerDegree,6*radiansPerDegree});
+  check(c.count()==0&&c.rejection()==StationaryCalibration::Rejection::GyroRate,
+    "10 deg/s ceiling applies to the combined vector rather than each axis");
   // The vertical bench fixture measured about 0.91g on this board.
   for(const Vec3 axis:{Vec3{.910f,0,-.025f},Vec3{-.910f,0,.025f},Vec3{0,.910f,-.025f},Vec3{0,-.910f,.025f}}){
     c.reset();

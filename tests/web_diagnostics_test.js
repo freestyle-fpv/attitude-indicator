@@ -205,9 +205,18 @@ test('duplicate high-rate sequence numbers do not fabricate sensor history',()=>
 });
 test('stationary statistics identify a constant high raw bias despite low noise and clear on reconnect',()=>{
  const {stationarySummary}=require('../installer/diagnostics-core.js'),m=new DiagnosticModel({maxHistory:220});
- for(let i=0;i<200;i++)m.add('IMUFAST seq='+i+' valid=0 gyro_dps=6.25,0,0 g=1 cal=0/400',1000+i*50);
+ for(let i=0;i<200;i++)m.add('IMUFAST seq='+i+' valid=0 gyro_dps=11.25,0,0 g=1 cal=0/400',1000+i*50);
  const r=stationarySummary(m,1000,11000);assert.equal(r.tone,'warning');assert.match(r.text,/零偏/);assert.equal(r.std[0],0);
  m.stationaryResult=r;m.resetTelemetry();assert.equal(m.stationaryResult,null);
+});
+test('stationary summary uses the 10 deg/s combined ceiling for reported bias and boundary samples',()=>{
+ const {stationarySummary}=require('../installer/diagnostics-core.js');
+ for(const [gyro,want] of [['-0.21,3.45,-4.01','success'],['9.99,0,0','success'],
+                          ['10.01,0,0','warning'],['6,6,6','warning']]){
+  const m=new DiagnosticModel();
+  for(let i=0;i<20;i++)m.add(`IMUFAST seq=${i} valid=0 gyro_dps=${gyro} g=1 cal=0/400`,1000+i*50);
+  assert.equal(stationarySummary(m,1000,2000).tone,want,gyro);
+ }
 });
 test('isolated historical timestamp repeats are not a freeze, but a timestamp stuck across reports is flagged',()=>{
  const {hardwareChecks}=require('../installer/diagnostics-core.js'),m=new DiagnosticModel();

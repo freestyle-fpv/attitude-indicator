@@ -12,7 +12,7 @@
 
 ## 安装和反馈
 
-1. 使用 `Attitude-Indicator-v0.2-USB-Installer-r5.zip`，解压后在电脑 Chrome 或 Edge 打开 `安装器.html`，照常安装。
+1. 使用 `Attitude-Indicator-v0.2.1-USB-Installer-r5.zip`，解压后在电脑 Chrome 或 Edge 打开 `安装器.html`，照常安装。
 2. 保持 「清除设备数据」 不勾选。安装完成后关闭安装窗口，串口自动交回诊断。
 3. 点击顶部「设备诊断」。已安装的设备会沿用连接；尚未连接时点击「连接设备」，首次选择串口，页面按 115200 自动读取。
 4. 固定板子，保持静止约 10 秒。网页显示校准进度、三轴陀螺仪、加速度模长、采样率及中文原因；点击「导出诊断报告」，把得到的文本文件反馈。
@@ -51,7 +51,7 @@ IMUDIAG v=caldiag3 present=1 fault=0 valid=0 cal=0/400 peak=0 reject=600 reason=
 | `none` | 尚无稳定性拒绝记录，或已完成校准/刚发起新请求 |
 | `nonfinite` | 加速度或陀螺仪存在 NaN/Infinity |
 | `gravity_range` | 加速度模长不在 0.85–1.15g 开区间内 |
-| `gyro_rate` | 三轴陀螺仪合成速率超过 5°/s |
+| `gyro_rate` | 三轴陀螺仪合成速率超过 10°/s（v0.2 及更早版本为 5°/s） |
 | `gyro_variation` | 4 样本平均陀螺仪与累计均值的合成差超过 0.75°/s |
 | `accel_motion` | 单样本或 4 样本均值的重力向量变化超过现有阈值 |
 

@@ -76,7 +76,7 @@ bool StationaryCalibration::add(Vec3 a,Vec3 w) {
   // Before calibration, constant gyro bias is not evidence of motion. This
   // board measured ~1.5 deg/s at rest. Bound the plausible raw bias separately
   // from variation around its running mean (all rates below are radians/s).
-  constexpr float MaxRawRate=0.08726646f; // 5 deg/s
+  constexpr float MaxRawRate=0.17453293f; // 10 deg/s
   constexpr float MaxRateChange=0.01308997f; // 0.75 deg/s
   // Use the same gravity gate as fusion. This board reads about 0.91 g when
   // supported on some edges; the separate variation checks still reject motion.
